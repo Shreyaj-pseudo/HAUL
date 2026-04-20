@@ -1,0 +1,1300 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TruckGuard Fleet Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --surface: #ffffff;
+      --surface-muted: #f8fafc;
+      --border: #e5e7eb;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --brand: #1d4ed8;
+      --good: #16a34a;
+      --caution: #d97706;
+      --warning: #ea580c;
+      --critical: #dc2626;
+      --shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+      --radius: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top right, #edf2ff 0%, var(--bg) 45%);
+      color: var(--text);
+      font-family: "Manrope", "Segoe UI", sans-serif;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .app {
+      display: grid;
+      grid-template-rows: 64px 1fr;
+      height: 100%;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 240px 1fr 320px;
+      align-items: center;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 18px;
+      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+      z-index: 5;
+    }
+
+    .logo {
+      font-size: 1.05rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      color: #111827;
+    }
+
+    .dashboard-title {
+      justify-self: center;
+      font-size: 1.05rem;
+      letter-spacing: 0.01em;
+      font-weight: 700;
+      color: #1f2937;
+    }
+
+    .top-right {
+      justify-self: end;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .clock {
+      min-width: 145px;
+      text-align: right;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .simulate-btn {
+      border: 1px solid #bfdbfe;
+      background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+      color: #1e3a8a;
+      height: 40px;
+      border-radius: 10px;
+      padding: 0 14px;
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .export-btn {
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #0f172a;
+      height: 40px;
+      border-radius: 10px;
+      padding: 0 12px;
+      font-family: inherit;
+      font-size: 0.74rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .simulate-btn:disabled {
+      opacity: 0.55;
+      cursor: wait;
+    }
+
+    .content {
+      display: grid;
+      grid-template-columns: 240px 1fr 280px;
+      min-height: 0;
+    }
+
+    .sidebar {
+      border-right: 1px solid var(--border);
+      background: var(--surface);
+      overflow: auto;
+      padding: 14px;
+    }
+
+    .sidebar h3 {
+      margin: 4px 0 12px;
+      font-size: 0.88rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+    }
+
+    .session-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .session-item {
+      border: 1px solid var(--border);
+      background: var(--surface-muted);
+      border-radius: 12px;
+      padding: 10px;
+      cursor: pointer;
+      transition: border-color 140ms ease, transform 140ms ease;
+    }
+
+    .session-item:hover {
+      border-color: #bfdbfe;
+      transform: translateY(-1px);
+    }
+
+    .session-item.active {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+      background: #eff6ff;
+    }
+
+    .session-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .driver-name {
+      font-size: 0.87rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .driver-name-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .session-live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.65);
+      animation: pulse-dot 1.7s infinite;
+      flex-shrink: 0;
+    }
+
+    .truck-id {
+      margin-top: 3px;
+      font-size: 0.75rem;
+      color: #475569;
+      font-weight: 600;
+    }
+
+    .duration {
+      margin-top: 6px;
+      font-size: 0.73rem;
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    .badge {
+      font-size: 0.68rem;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: none;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .badge-normal {
+      color: #166534;
+      background: #dcfce7;
+      border-color: #86efac;
+    }
+
+    .badge-caution {
+      color: #92400e;
+      background: #fef3c7;
+      border-color: #fcd34d;
+    }
+
+    .badge-warning {
+      color: #9a3412;
+      background: #ffedd5;
+      border-color: #fdba74;
+    }
+
+    .badge-critical {
+      color: #991b1b;
+      background: #fee2e2;
+      border-color: #fca5a5;
+    }
+
+    .main {
+      min-width: 0;
+      overflow: auto;
+      padding: 20px;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .driver-card {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 18px;
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+
+    .driver-headline {
+      margin: 0;
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .driver-sub {
+      margin-top: 6px;
+      font-size: 0.85rem;
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    .metrics {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      background: #fcfdff;
+    }
+
+    .metric-label {
+      font-size: 0.7rem;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      font-weight: 700;
+    }
+
+    .metric-value {
+      margin-top: 4px;
+      font-size: 1rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .alert-stack {
+      min-width: 190px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: end;
+      gap: 8px;
+    }
+
+    .alert-large {
+      font-size: 0.9rem;
+      padding: 9px 14px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 800;
+      border: 1px solid transparent;
+    }
+
+    .section {
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      margin: 0 0 12px;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 800;
+      color: #334155;
+    }
+
+    .chart-wrap {
+      height: 280px;
+    }
+
+    .table-wrap {
+      overflow: auto;
+    }
+
+    .row-normal {
+      background: rgba(22, 163, 74, 0.05);
+    }
+
+    .row-caution {
+      background: rgba(217, 119, 6, 0.05);
+    }
+
+    .row-warning {
+      background: rgba(234, 88, 12, 0.06);
+    }
+
+    .row-critical {
+      background: rgba(220, 38, 38, 0.07);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 920px;
+    }
+
+    th,
+    td {
+      text-align: left;
+      padding: 10px;
+      border-bottom: 1px solid #edf2f7;
+      vertical-align: top;
+    }
+
+    th {
+      font-size: 0.72rem;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 800;
+    }
+
+    td {
+      font-size: 0.79rem;
+      color: #1f2937;
+      font-weight: 600;
+      max-width: 220px;
+    }
+
+    .score-low {
+      color: #166534;
+      font-weight: 800;
+    }
+
+    .score-mid {
+      color: #92400e;
+      font-weight: 800;
+    }
+
+    .score-high {
+      color: #9a3412;
+      font-weight: 800;
+    }
+
+    .score-critical {
+      color: #b91c1c;
+      font-weight: 800;
+    }
+
+    .breakdown {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .signal-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fcfdff;
+      padding: 12px;
+    }
+
+    .signal-title {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #64748b;
+      font-weight: 800;
+    }
+
+    .signal-value {
+      margin-top: 6px;
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .signal-high {
+      color: var(--critical);
+    }
+
+    .signal-warning {
+      color: var(--warning);
+    }
+
+    .right-panel {
+      border-left: 1px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .feed-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.86rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #475569;
+      font-weight: 800;
+    }
+
+    .feed-list {
+      overflow: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
+    }
+
+    .feed-entry {
+      border: 1px solid var(--border);
+      background: #fbfdff;
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .feed-entry.new-entry {
+      animation: feed-slide-in 360ms ease;
+    }
+
+    .feed-time {
+      font-size: 0.7rem;
+      color: #64748b;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .feed-driver {
+      font-size: 0.76rem;
+      color: #334155;
+      font-weight: 800;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    .feed-reasoning {
+      font-size: 0.76rem;
+      color: #0f172a;
+      line-height: 1.45;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tag {
+      font-size: 0.64rem;
+      border-radius: 999px;
+      padding: 3px 7px;
+      border: 1px solid #c7d2fe;
+      background: #eef2ff;
+      color: #3730a3;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .feed-entry.level-normal {
+      border-left: 4px solid #22c55e;
+    }
+
+    .feed-entry.level-caution {
+      border-left: 4px solid #eab308;
+    }
+
+    .feed-entry.level-warning {
+      border-left: 4px solid #f97316;
+    }
+
+    .feed-entry.level-critical {
+      border-left: 4px solid #ef4444;
+    }
+
+    .empty {
+      padding: 28px;
+      text-align: center;
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    @keyframes feed-slide-in {
+      from {
+        opacity: 0;
+        transform: translateX(36px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes pulse-dot {
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.65);
+      }
+      50% {
+        box-shadow: 0 0 0 7px rgba(34, 197, 94, 0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="logo">TruckGuard</div>
+      <div class="dashboard-title">Fleet Dashboard</div>
+      <div class="top-right">
+        <button id="exportPdfBtn" class="export-btn" type="button">Export Session PDF (Coming Soon)</button>
+        <button id="simulateBtn" class="simulate-btn" type="button">Simulate Driver</button>
+        <div id="liveClock" class="clock">--:--:--</div>
+      </div>
+    </header>
+
+    <div class="content">
+      <aside class="sidebar">
+        <h3>Active Sessions</h3>
+        <div id="sessionList" class="session-list"></div>
+      </aside>
+
+      <main id="mainArea" class="main"></main>
+
+      <aside class="right-panel">
+        <div class="feed-header">AI Analysis Feed</div>
+        <div id="feedList" class="feed-list"></div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const SERVER = 'http://localhost:3000';
+
+    const state = {
+      sessions: {},
+      sessionMeta: {},
+      sessionMetaOverrides: {},
+      selectedSessionId: null,
+      selectedLength: 0,
+      chart: null,
+      chartHasAnimated: false,
+      feedEntries: [],
+      seenCheckIns: new Set()
+    };
+
+    const criticalThresholdPlugin = {
+      id: 'criticalThresholdPlugin',
+      afterDraw(chart) {
+        const yScale = chart.scales.y;
+        const xScale = chart.scales.x;
+        if (!yScale || !xScale) return;
+
+        const yPixel = yScale.getPixelForValue(8);
+        const ctx = chart.ctx;
+
+        ctx.save();
+        ctx.setLineDash([6, 6]);
+        ctx.strokeStyle = '#dc2626';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(xScale.left, yPixel);
+        ctx.lineTo(xScale.right, yPixel);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#b91c1c';
+        ctx.font = '11px Manrope';
+        ctx.fillText('Critical threshold', xScale.left + 8, yPixel - 7);
+        ctx.restore();
+      }
+    };
+
+    const mainArea = document.getElementById('mainArea');
+    const sessionListEl = document.getElementById('sessionList');
+    const feedListEl = document.getElementById('feedList');
+    const liveClockEl = document.getElementById('liveClock');
+    const simulateBtn = document.getElementById('simulateBtn');
+    const exportPdfBtn = document.getElementById('exportPdfBtn');
+
+    function levelToUi(level, score) {
+      const normalized = String(level || '').toUpperCase();
+      if (['NORMAL', 'CAUTION', 'WARNING', 'CRITICAL'].includes(normalized)) return normalized;
+      if (normalized === 'LOW') return 'NORMAL';
+      if (normalized === 'MEDIUM') return 'CAUTION';
+      if (normalized === 'HIGH') return Number(score) >= 9 ? 'CRITICAL' : 'WARNING';
+
+      const numeric = Number(score);
+      if (!Number.isNaN(numeric)) {
+        if (numeric >= 9) return 'CRITICAL';
+        if (numeric >= 7) return 'WARNING';
+        if (numeric >= 4) return 'CAUTION';
+      }
+      return 'NORMAL';
+    }
+
+    function badgeClass(level) {
+      if (level === 'NORMAL') return 'badge-normal';
+      if (level === 'CAUTION') return 'badge-caution';
+      if (level === 'WARNING') return 'badge-warning';
+      return 'badge-critical';
+    }
+
+    function scoreClass(score) {
+      if (score >= 9) return 'score-critical';
+      if (score >= 7) return 'score-high';
+      if (score >= 4) return 'score-mid';
+      return 'score-low';
+    }
+
+    function colorForScore(score) {
+      if (score > 7) return '#ef4444';
+      if (score > 4) return '#f97316';
+      return '#22c55e';
+    }
+
+    function formatDuration(ms) {
+      if (!Number.isFinite(ms) || ms <= 0) return '0h 00m';
+      const totalMinutes = Math.floor(ms / 60000);
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      return `${hours}h ${String(minutes).padStart(2, '0')}m`;
+    }
+
+    function formatClock() {
+      return new Date().toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    }
+
+    function formatLocalDateTime(value) {
+      const date = value ? new Date(value) : null;
+      if (!date || Number.isNaN(date.getTime())) return '--';
+      return date.toLocaleString([], {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    function formatShiftTimeFromHours(hoursOnRoad) {
+      const hours = Number(hoursOnRoad);
+      if (!Number.isFinite(hours) || hours < 0) return '--';
+      const totalMinutes = Math.round(hours * 60);
+      const wholeHours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      return `${wholeHours}h ${String(minutes).padStart(2, '0')}m`;
+    }
+
+    function wordCount(text) {
+      const clean = String(text || '').trim();
+      if (!clean) return 0;
+      return clean.split(/\s+/).length;
+    }
+
+    function truncate(text, maxLength) {
+      const clean = String(text || '');
+      if (clean.length <= maxLength) return clean;
+      return `${clean.slice(0, maxLength - 1)}…`;
+    }
+
+    function normalizeSessionsPayload(payload) {
+      if (payload && typeof payload === 'object' && payload.sessions && typeof payload.sessions === 'object') {
+        return {
+          sessions: payload.sessions,
+          meta: payload.sessionMeta || {}
+        };
+      }
+
+      return {
+        sessions: payload && typeof payload === 'object' ? payload : {},
+        meta: {}
+      };
+    }
+
+    function normalizeSessionDetail(payload, sessionId) {
+      if (Array.isArray(payload)) {
+        return {
+          checkIns: payload,
+          driver: state.sessionMeta[sessionId] || state.sessionMetaOverrides[sessionId] || {}
+        };
+      }
+
+      if (payload && typeof payload === 'object') {
+        return {
+          checkIns: Array.isArray(payload.checkIns) ? payload.checkIns : [],
+          driver: payload.driver || state.sessionMeta[sessionId] || state.sessionMetaOverrides[sessionId] || {}
+        };
+      }
+
+      return { checkIns: [], driver: {} };
+    }
+
+    function getSessionMeta(sessionId, checkIns) {
+      const checkInList = Array.isArray(checkIns) ? checkIns : [];
+      const fromApi = state.sessionMeta[sessionId] || {};
+      const fromOverride = state.sessionMetaOverrides[sessionId] || {};
+      const fallback = {
+        driverName: `Driver ${String(sessionId).slice(-4)}`,
+        truckId: 'TRUCK-UNKNOWN',
+        startedAt: checkInList[0]?.timestamp || null
+      };
+
+      return {
+        ...fallback,
+        ...fromApi,
+        ...fromOverride
+      };
+    }
+
+    async function getJson(url) {
+      const response = await fetch(url, { method: 'GET' });
+      if (!response.ok) throw new Error(`Request failed: ${response.status}`);
+      return response.json();
+    }
+
+    function renderSidebar() {
+      const entries = Object.entries(state.sessions)
+        .map(([sessionId, checkIns]) => {
+          const safeCheckIns = Array.isArray(checkIns) ? checkIns : [];
+          const meta = getSessionMeta(sessionId, safeCheckIns);
+          const last = safeCheckIns[safeCheckIns.length - 1] || {};
+          const level = levelToUi(last.level, last.score);
+          const startTime = meta.startedAt ? new Date(meta.startedAt).getTime() : null;
+          const durationMs = startTime ? Date.now() - startTime : 0;
+          const lastStamp = last.timestamp ? new Date(last.timestamp).getTime() : 0;
+
+          return {
+            sessionId,
+            checkIns: safeCheckIns,
+            meta,
+            level,
+            durationMs,
+            lastStamp
+          };
+        })
+        .sort((a, b) => b.lastStamp - a.lastStamp);
+
+      if (!entries.length) {
+        sessionListEl.innerHTML = '<div class="empty">No active sessions yet.</div>';
+        return;
+      }
+
+      sessionListEl.innerHTML = entries.map((entry) => {
+        const isActive = entry.sessionId === state.selectedSessionId;
+        return `
+          <div class="session-item ${isActive ? 'active' : ''}" data-session-id="${entry.sessionId}">
+            <div class="session-row">
+              <div class="driver-name-row"><span class="session-live-dot"></span><div class="driver-name">${entry.meta.driverName || 'Driver'}</div></div>
+              <span class="badge ${badgeClass(entry.level)}">${entry.level}</span>
+            </div>
+            <div class="truck-id">${entry.meta.truckId || 'TRUCK-UNKNOWN'}</div>
+            <div class="duration">Shift ${formatDuration(entry.durationMs)}</div>
+          </div>
+        `;
+      }).join('');
+
+      sessionListEl.querySelectorAll('.session-item').forEach((item) => {
+        item.addEventListener('click', () => {
+          const sessionId = item.getAttribute('data-session-id');
+          if (!sessionId) return;
+          selectSession(sessionId);
+        });
+      });
+    }
+
+    function reasoningForCheckIn(checkIn, level) {
+      const direct = checkIn?.llmAnalysis?.reasoning;
+      if (direct && !String(direct).toLowerCase().includes('not configured')) return direct;
+
+      if (level === 'NORMAL') return 'Response appears coherent and stable with low fatigue indicators.';
+      if (level === 'CAUTION') return 'Mild fatigue signs present. Recommend a short rest soon.';
+      if (level === 'WARNING') return 'Noticeable fatigue cues and slower response timing were detected.';
+      return 'Severe fatigue risk profile. Immediate safe pull-over is recommended.';
+    }
+
+    function addFeedEntries(sessionId, driverName, checkIns, isNew) {
+      checkIns.forEach((checkIn) => {
+        const id = checkIn.checkInId || `${sessionId}-${checkIn.timestamp || ''}-${checkIn.checkInNumber || ''}`;
+        if (state.seenCheckIns.has(id)) return;
+
+        state.seenCheckIns.add(id);
+
+        const level = levelToUi(checkIn.level, checkIn.score);
+        const reasoning = reasoningForCheckIn(checkIn, level);
+        const indicators = Array.isArray(checkIn?.llmAnalysis?.fatigueIndicators)
+          ? checkIn.llmAnalysis.fatigueIndicators
+          : [];
+
+        state.feedEntries.unshift({
+          id,
+          timestamp: checkIn.timestamp || new Date().toISOString(),
+          driverName,
+          reasoning,
+          indicators,
+          level,
+          isNew
+        });
+      });
+
+      if (state.feedEntries.length > 200) {
+        state.feedEntries = state.feedEntries.slice(0, 200);
+      }
+
+      renderFeed();
+    }
+
+    function renderFeed() {
+      if (!state.feedEntries.length) {
+        feedListEl.innerHTML = '<div class="empty">Waiting for LLM check-in analysis...</div>';
+        return;
+      }
+
+      feedListEl.innerHTML = state.feedEntries.map((entry) => {
+        const indicatorTags = entry.indicators.length
+          ? entry.indicators.map((tag) => `<span class="tag">${tag}</span>`).join('')
+          : '<span class="tag">No indicators</span>';
+
+        return `
+          <div class="feed-entry level-${entry.level.toLowerCase()} ${entry.isNew ? 'new-entry' : ''}">
+            <div class="feed-time">${formatLocalDateTime(entry.timestamp)}</div>
+            <div class="feed-driver">${entry.driverName}</div>
+            <div class="feed-reasoning">${truncate(entry.reasoning, 120)}</div>
+            <div class="tag-row">${indicatorTags}</div>
+          </div>
+        `;
+      }).join('');
+
+      state.feedEntries.forEach((entry) => {
+        entry.isNew = false;
+      });
+    }
+
+    function renderMain(sessionId, checkIns, meta) {
+      if (!sessionId || !checkIns) {
+        mainArea.innerHTML = '<div class="panel empty">Select an active session to view details.</div>';
+        return;
+      }
+
+      const safeCheckIns = Array.isArray(checkIns) ? checkIns : [];
+      const last = safeCheckIns[safeCheckIns.length - 1] || {};
+      const level = levelToUi(last.level, last.score);
+      const startMs = meta.startedAt ? new Date(meta.startedAt).getTime() : null;
+      const totalHours = startMs ? ((Date.now() - startMs) / 3600000).toFixed(1) : '--';
+
+      mainArea.innerHTML = `
+        <section class="panel driver-card">
+          <div>
+            <h1 class="driver-headline">${meta.driverName || 'Driver'}</h1>
+            <div class="driver-sub">${meta.truckId || 'TRUCK-UNKNOWN'} • Started ${formatLocalDateTime(meta.startedAt)}</div>
+            <div class="metrics">
+              <div class="metric">
+                <div class="metric-label">Hours Driven</div>
+                <div class="metric-value">${totalHours === '--' ? '--' : `${totalHours}h`}</div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">Check-ins Completed</div>
+                <div class="metric-value">${safeCheckIns.length}</div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">Session ID</div>
+                <div class="metric-value">${sessionId}</div>
+              </div>
+            </div>
+          </div>
+          <div class="alert-stack">
+            <div class="alert-large ${badgeClass(level)}">${level}</div>
+            <div class="driver-sub">Current alert level</div>
+          </div>
+        </section>
+
+        <section class="panel section">
+          <h2 class="section-title">Fatigue Score Trend</h2>
+          <div class="chart-wrap">
+            <canvas id="fatigueChart"></canvas>
+          </div>
+        </section>
+
+        <section class="panel section">
+          <h2 class="section-title">Check-in History</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Time into shift</th>
+                  <th>Score</th>
+                  <th>Latency</th>
+                  <th>Transcript</th>
+                  <th>LLM Assessment</th>
+                  <th>Level</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${renderTableRows(safeCheckIns)}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel section">
+          <h2 class="section-title">Signal Breakdown (Last Check-in)</h2>
+          ${renderSignalBreakdown(last)}
+        </section>
+      `;
+
+      renderChart(safeCheckIns);
+    }
+
+    function renderSignalBreakdown(lastCheckIn) {
+      if (!lastCheckIn || !Object.keys(lastCheckIn).length) {
+        return '<div class="empty">No check-ins available yet.</div>';
+      }
+
+      const latency = Number(lastCheckIn.latencyMs || 0);
+      const words = wordCount(lastCheckIn.transcript);
+      const coherence = Number(lastCheckIn?.llmAnalysis?.coherenceScore ?? 0);
+
+      const latencyClass = latency > 4000 ? 'signal-high' : latency > 2500 ? 'signal-warning' : '';
+      const wordClass = words < 4 ? 'signal-warning' : '';
+      const coherenceClass = coherence < 4 ? 'signal-high' : coherence < 7 ? 'signal-warning' : '';
+
+      return `
+        <div class="breakdown">
+          <div class="signal-card">
+            <div class="signal-title">Response Latency</div>
+            <div class="signal-value ${latencyClass}">${Math.round(latency)}ms</div>
+          </div>
+          <div class="signal-card">
+            <div class="signal-title">Word Count</div>
+            <div class="signal-value ${wordClass}">${words}</div>
+          </div>
+          <div class="signal-card">
+            <div class="signal-title">LLM Coherence</div>
+            <div class="signal-value ${coherenceClass}">${coherence}/10</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderTableRows(checkIns) {
+      if (!checkIns.length) {
+        return '<tr><td colspan="6" class="empty">No check-ins yet for this session.</td></tr>';
+      }
+
+      return [...checkIns]
+        .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
+        .map((checkIn) => {
+          const score = Number(checkIn.score || 0);
+          const level = levelToUi(checkIn.level, checkIn.score);
+          const latencySeconds = (Number(checkIn.latencyMs || 0) / 1000).toFixed(2);
+          const reasoning = reasoningForCheckIn(checkIn, level);
+
+          return `
+            <tr class="row-${level.toLowerCase()}">
+              <td>${formatShiftTimeFromHours(checkIn.hoursOnRoad)}</td>
+              <td class="${scoreClass(score)}">${score}</td>
+              <td>${latencySeconds}s</td>
+              <td title="${String(checkIn.transcript || '').replace(/"/g, '&quot;')}">${truncate(checkIn.transcript || '--', 80)}</td>
+              <td title="${String(reasoning).replace(/"/g, '&quot;')}">${truncate(reasoning, 80)}</td>
+              <td><span class="badge ${badgeClass(level)}">${level}</span></td>
+            </tr>
+          `;
+        })
+        .join('');
+    }
+
+    function renderChart(checkIns) {
+      const canvas = document.getElementById('fatigueChart');
+      if (!canvas || typeof Chart === 'undefined') return;
+
+      const labels = checkIns.map((item, index) => {
+        const n = Number(item.checkInNumber);
+        return Number.isFinite(n) ? n + 1 : index + 1;
+      });
+
+      const values = checkIns.map((item) => Number(item.score || 0));
+
+      if (state.chart) {
+        state.chart.destroy();
+      }
+
+      state.chart = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Fatigue Score',
+            data: values,
+            tension: 0.32,
+            borderWidth: 3,
+            pointRadius: 4,
+            pointHoverRadius: 5,
+            segment: {
+              borderColor: (ctx) => colorForScore(Math.max(ctx.p0.parsed.y, ctx.p1.parsed.y))
+            },
+            pointBackgroundColor: (ctx) => colorForScore(ctx.raw)
+          }]
+        },
+        options: {
+          maintainAspectRatio: false,
+          animation: {
+            duration: state.chartHasAnimated ? 350 : 1200,
+            easing: 'easeOutQuart'
+          },
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: (context) => `Score: ${context.parsed.y}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Check-in Number'
+              },
+              grid: {
+                color: '#eef2f7'
+              }
+            },
+            y: {
+              min: 0,
+              max: 10,
+              ticks: {
+                stepSize: 1
+              },
+              title: {
+                display: true,
+                text: 'Fatigue Score'
+              },
+              grid: {
+                color: '#eef2f7'
+              }
+            }
+          }
+        },
+        plugins: [criticalThresholdPlugin]
+      });
+
+      state.chartHasAnimated = true;
+    }
+
+    async function selectSession(sessionId, fromPoll) {
+      state.selectedSessionId = sessionId;
+      await refreshSelectedSession(fromPoll);
+      renderSidebar();
+    }
+
+    async function refreshSelectedSession(fromPoll) {
+      const sessionId = state.selectedSessionId;
+      if (!sessionId) {
+        renderMain(null, null, null);
+        return;
+      }
+
+      try {
+        const payload = await getJson(`${SERVER}/api/sessions/${sessionId}`);
+        const normalized = normalizeSessionDetail(payload, sessionId);
+        state.sessions[sessionId] = normalized.checkIns;
+
+        const meta = {
+          ...(state.sessionMeta[sessionId] || {}),
+          ...(normalized.driver || {}),
+          ...(state.sessionMetaOverrides[sessionId] || {})
+        };
+
+        state.sessionMeta[sessionId] = meta;
+
+        const oldLength = state.selectedLength;
+        const newLength = normalized.checkIns.length;
+        const driverName = getSessionMeta(sessionId, normalized.checkIns).driverName;
+
+        if (!fromPoll) {
+          addFeedEntries(sessionId, driverName, normalized.checkIns, false);
+        } else if (newLength > oldLength) {
+          addFeedEntries(sessionId, driverName, normalized.checkIns.slice(oldLength), true);
+        }
+
+        state.selectedLength = newLength;
+        renderMain(sessionId, normalized.checkIns, getSessionMeta(sessionId, normalized.checkIns));
+      } catch (_error) {
+        renderMain(null, null, null);
+      }
+    }
+
+    async function refreshSessions(fromPoll) {
+      try {
+        const payload = await getJson(`${SERVER}/api/sessions`);
+        const normalized = normalizeSessionsPayload(payload);
+
+        state.sessions = normalized.sessions;
+        state.sessionMeta = {
+          ...state.sessionMeta,
+          ...normalized.meta,
+          ...state.sessionMetaOverrides
+        };
+
+        const sessionIds = Object.keys(state.sessions);
+
+        if (!sessionIds.length) {
+          state.selectedSessionId = null;
+          state.selectedLength = 0;
+          renderSidebar();
+          renderMain(null, null, null);
+          return;
+        }
+
+        if (!state.selectedSessionId || !state.sessions[state.selectedSessionId]) {
+          state.selectedSessionId = sessionIds[0];
+          state.selectedLength = 0;
+          await refreshSelectedSession(false);
+        } else {
+          await refreshSelectedSession(fromPoll);
+        }
+
+        renderSidebar();
+      } catch (_error) {
+        sessionListEl.innerHTML = '<div class="empty">Server unavailable.</div>';
+      }
+    }
+
+    async function simulateDriver() {
+      simulateBtn.disabled = true;
+
+      try {
+        const startRes = await fetch(`${SERVER}/api/sessions/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            driverName: 'Demo Driver',
+            truckId: 'TRUCK-01'
+          })
+        });
+
+        if (!startRes.ok) {
+          throw new Error('Failed to create demo session');
+        }
+
+        const startData = await startRes.json();
+        const sessionId = startData.sessionId;
+
+        state.sessionMetaOverrides[sessionId] = {
+          driverName: 'Demo Driver',
+          truckId: 'TRUCK-01',
+          startedAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString()
+        };
+
+        const demoCheckIns = [
+          {
+            transcript: 'Feeling focused. Traffic is smooth and I am staying alert.',
+            latencyMs: 950,
+            hoursOnRoad: 2.2
+          },
+          {
+            transcript: 'Doing okay, a little drained but manageable.',
+            latencyMs: 2100,
+            hoursOnRoad: 3.8
+          },
+          {
+            transcript: 'Kinda tired honestly, eyes are heavy and concentration is harder.',
+            latencyMs: 3300,
+            hoursOnRoad: 5.6
+          },
+          {
+            transcript: '',
+            latencyMs: 5600,
+            hoursOnRoad: 7.4
+          }
+        ];
+
+        for (let i = 0; i < demoCheckIns.length; i += 1) {
+          if (i > 0) {
+            await new Promise((resolve) => setTimeout(resolve, 2500));
+          }
+
+          await fetch(`${SERVER}/api/checkin`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ...demoCheckIns[i],
+              checkInNumber: i,
+              sessionId
+            })
+          });
+
+          await refreshSessions(true);
+        }
+
+        await selectSession(sessionId, false);
+      } catch (_error) {
+        // no-op
+      } finally {
+        simulateBtn.disabled = false;
+      }
+    }
+
+    function startClock() {
+      liveClockEl.textContent = formatClock();
+      setInterval(() => {
+        liveClockEl.textContent = formatClock();
+      }, 1000);
+    }
+
+    simulateBtn.addEventListener('click', simulateDriver);
+    exportPdfBtn.addEventListener('click', () => {
+      const sessionId = state.selectedSessionId || 'none';
+      console.log(`[Coming Soon] Export Session PDF requested for session ${sessionId}`);
+    });
+
+    startClock();
+    renderMain(null, null, null);
+    renderFeed();
+
+    refreshSessions(false);
+    setInterval(() => {
+      refreshSessions(true);
+    }, 5000);
+  </script>
+</body>
+</html>

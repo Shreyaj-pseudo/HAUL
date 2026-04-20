@@ -122,16 +122,17 @@
       height: 300px;
       border-radius: 50%;
       background: var(--good);
+      color: var(--good);
       box-shadow: 0 0 22px rgba(34, 197, 94, 0.65), 0 0 92px rgba(34, 197, 94, 0.3);
-      transition: background-color 220ms linear, box-shadow 220ms linear;
+      transition: all 0.6s ease;
     }
 
     .status-circle.pulse-warning {
-      animation: pulse-warning 1.6s infinite;
+      animation: pulse 1.6s infinite;
     }
 
     .status-circle.pulse-critical {
-      animation: pulse-critical 0.85s infinite;
+      animation: pulse 0.85s infinite;
     }
 
     .alert-label {
@@ -139,6 +140,88 @@
       color: #e6e6e6;
       letter-spacing: 0.18em;
       text-transform: uppercase;
+      transition: all 0.6s ease;
+    }
+
+    .status-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .last-checkin-text {
+      font-size: 0.74rem;
+      color: #9ca3af;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      transition: all 0.6s ease;
+    }
+
+    .history-toggle {
+      border: 1px solid #303030;
+      border-radius: 999px;
+      background: #171717;
+      color: #d1d5db;
+      width: 34px;
+      height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.6s ease;
+    }
+
+    .history-panel {
+      width: min(360px, 92vw);
+      background: rgba(18, 18, 18, 0.96);
+      border: 1px solid #303030;
+      border-radius: 12px;
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      transform: translateY(14px);
+      transition: all 0.35s ease;
+    }
+
+    .history-panel.open {
+      max-height: 220px;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .history-header {
+      padding: 10px 12px;
+      border-bottom: 1px solid #2a2a2a;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #9ca3af;
+      text-align: left;
+    }
+
+    .history-list {
+      list-style: none;
+      margin: 0;
+      padding: 8px 12px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.78rem;
+      color: #d1d5db;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .history-item .score {
+      font-weight: 700;
+      color: #f3f4f6;
     }
 
     .bottombar {
@@ -177,24 +260,51 @@
       left: 0;
       right: 0;
       bottom: 0;
-      height: 3px;
-      background: linear-gradient(90deg, transparent 0%, transparent 100%);
-      overflow: hidden;
+      height: 20px;
+      border-top: 1px solid #1f2937;
+      background: linear-gradient(90deg, rgba(17, 24, 39, 0.5) 0%, rgba(17, 24, 39, 0.1) 100%);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
     }
 
-    .speaking-indicator::before {
-      content: "";
-      position: absolute;
-      left: -40%;
-      width: 35%;
-      height: 100%;
-      background: linear-gradient(90deg, rgba(34, 197, 94, 0), rgba(34, 197, 94, 0.95), rgba(34, 197, 94, 0));
-      opacity: 0;
+    .waveform {
+      height: 15px;
+      display: flex;
+      gap: 4px;
+      align-items: flex-end;
+      opacity: 0.2;
+      transition: all 0.6s ease;
     }
 
-    body.speaking .speaking-indicator::before {
+    .waveform-bar {
+      width: 4px;
+      height: 6px;
+      border-radius: 2px;
+      background: #22c55e;
+      transform-origin: bottom center;
+      animation: wave 1s ease-in-out infinite;
+      animation-play-state: paused;
+    }
+
+    .waveform-bar:nth-child(2) {
+      animation-duration: 0.8s;
+    }
+
+    .waveform-bar:nth-child(3) {
+      animation-duration: 1.2s;
+    }
+
+    .waveform-bar:nth-child(4) {
+      animation-duration: 0.65s;
+    }
+
+    body.speaking .waveform {
       opacity: 1;
-      animation: speaking-bar 1s linear infinite;
+    }
+
+    body.speaking .waveform-bar {
+      animation-play-state: running;
     }
 
     .edge-flash {
@@ -265,16 +375,10 @@
       font-size: 0.95rem;
     }
 
-    @keyframes pulse-warning {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.04); }
-      100% { transform: scale(1); }
-    }
-
-    @keyframes pulse-critical {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.06); }
-      100% { transform: scale(1); }
+    @keyframes pulse {
+      0%,
+      100% { box-shadow: 0 0 0 0 currentColor; }
+      50% { box-shadow: 0 0 40px 10px currentColor; }
     }
 
     @keyframes edge-critical {
@@ -282,9 +386,10 @@
       to { box-shadow: inset 0 0 0 12px rgba(239, 68, 68, 0.45); }
     }
 
-    @keyframes speaking-bar {
-      0% { left: -40%; }
-      100% { left: 110%; }
+    @keyframes wave {
+      0%,
+      100% { transform: scaleY(0.35); }
+      50% { transform: scaleY(1); }
     }
 
     @media (max-width: 420px) {
@@ -319,6 +424,16 @@
     <main class="center">
       <div id="statusCircle" class="status-circle" aria-hidden="true"></div>
       <div id="alertLabel" class="alert-label">All Clear</div>
+      <div class="status-meta">
+        <div id="lastCheckInText" class="last-checkin-text">Last check-in: never</div>
+        <button id="historyToggle" class="history-toggle" type="button" aria-label="Show recent check-in history">H</button>
+      </div>
+      <div id="historyPanel" class="history-panel" aria-label="Recent check-in history">
+        <div class="history-header">Recent Scores</div>
+        <ul id="historyList" class="history-list">
+          <li class="history-item">No check-ins yet</li>
+        </ul>
+      </div>
     </main>
 
     <div class="bottombar">
@@ -326,7 +441,14 @@
       <button id="checkInBtn" type="button" disabled>Check In</button>
     </div>
 
-    <div class="speaking-indicator" aria-hidden="true"></div>
+    <div class="speaking-indicator" aria-hidden="true">
+      <div class="waveform">
+        <span class="waveform-bar"></span>
+        <span class="waveform-bar"></span>
+        <span class="waveform-bar"></span>
+        <span class="waveform-bar"></span>
+      </div>
+    </div>
     <div id="edgeFlash" class="edge-flash" aria-hidden="true"></div>
 
     <div id="startOverlay" class="overlay hidden" role="dialog" aria-modal="true" aria-label="Start shift">
@@ -354,7 +476,9 @@
       currentLevel: 'NORMAL',
       checkInInterval: null,
       demoMode: false,
-      demoScenarioIndex: 0
+      demoScenarioIndex: 0,
+      lastCheckInAt: null,
+      recentScores: []
     };
 
     const demoScenarios = [
@@ -377,6 +501,37 @@
     const cancelStartBtn = document.getElementById('cancelStartBtn');
     const logoTap = document.getElementById('logoTap');
     const demoBadge = document.getElementById('demoBadge');
+    const lastCheckInText = document.getElementById('lastCheckInText');
+    const historyToggle = document.getElementById('historyToggle');
+    const historyPanel = document.getElementById('historyPanel');
+    const historyList = document.getElementById('historyList');
+
+    function renderHistory() {
+      if (!sessionState.recentScores.length) {
+        historyList.innerHTML = '<li class="history-item">No check-ins yet</li>';
+        return;
+      }
+
+      historyList.innerHTML = sessionState.recentScores
+        .slice()
+        .reverse()
+        .map((entry) => `<li class="history-item"><span>${entry.level}</span><span class="score">Score ${entry.score}</span></li>`)
+        .join('');
+    }
+
+    function updateLastCheckInText() {
+      if (!sessionState.lastCheckInAt) {
+        lastCheckInText.textContent = 'Last check-in: never';
+        return;
+      }
+
+      const minutes = Math.max(0, Math.floor((Date.now() - sessionState.lastCheckInAt) / 60000));
+      if (minutes < 1) {
+        lastCheckInText.textContent = 'Last check-in: just now';
+        return;
+      }
+      lastCheckInText.textContent = `Last check-in: ${minutes} min${minutes === 1 ? '' : 's'} ago`;
+    }
 
     function normalizeServerLevel(level, score) {
       const clean = (level || '').toString().trim().toUpperCase();
@@ -504,6 +659,7 @@
 
       if (level === 'NORMAL') {
         statusCircle.style.backgroundColor = '#22c55e';
+        statusCircle.style.color = '#22c55e';
         statusCircle.style.boxShadow = '0 0 22px rgba(34, 197, 94, 0.65), 0 0 92px rgba(34, 197, 94, 0.3)';
         alertLabel.textContent = 'ALL CLEAR';
         return;
@@ -511,6 +667,7 @@
 
       if (level === 'CAUTION') {
         statusCircle.style.backgroundColor = '#eab308';
+        statusCircle.style.color = '#eab308';
         statusCircle.style.boxShadow = '0 0 22px rgba(234, 179, 8, 0.65), 0 0 92px rgba(234, 179, 8, 0.3)';
         alertLabel.textContent = 'CAUTION';
         return;
@@ -518,6 +675,7 @@
 
       if (level === 'WARNING') {
         statusCircle.style.backgroundColor = '#f97316';
+        statusCircle.style.color = '#f97316';
         statusCircle.style.boxShadow = '0 0 24px rgba(249, 115, 22, 0.75), 0 0 102px rgba(249, 115, 22, 0.35)';
         statusCircle.classList.add('pulse-warning');
         alertLabel.textContent = 'WARNING';
@@ -525,10 +683,14 @@
       }
 
       statusCircle.style.backgroundColor = '#ef4444';
+      statusCircle.style.color = '#ef4444';
       statusCircle.style.boxShadow = '0 0 26px rgba(239, 68, 68, 0.85), 0 0 110px rgba(239, 68, 68, 0.4)';
       statusCircle.classList.add('pulse-critical');
       edgeFlash.classList.add('active');
       alertLabel.textContent = 'CRITICAL';
+      if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+        navigator.vibrate([200, 100, 200, 100, 400]);
+      }
     }
 
     async function speakIntervention(level, llmAnalysis) {
@@ -578,6 +740,12 @@
 
         const { score, level, llmAnalysis } = await response.json();
         const normalizedLevel = normalizeServerLevel(level, score);
+
+        sessionState.lastCheckInAt = Date.now();
+        sessionState.recentScores.push({ score, level: normalizedLevel });
+        sessionState.recentScores = sessionState.recentScores.slice(-5);
+        updateLastCheckInText();
+        renderHistory();
 
         updateAlertLevel(normalizedLevel);
         await speakIntervention(normalizedLevel, llmAnalysis);
@@ -685,11 +853,18 @@
       runCheckIn();
     });
 
+    historyToggle.addEventListener('click', () => {
+      historyPanel.classList.toggle('open');
+    });
+
     logoTap.addEventListener('click', handleLogoTap);
 
     updateAlertLevel('NORMAL');
+    updateLastCheckInText();
+    renderHistory();
     pingServer();
     setInterval(pingServer, 5000);
+    setInterval(updateLastCheckInText, 30000);
   </script>
 </body>
 </html>
