@@ -3,168 +3,271 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TruckGuard Fleet Dashboard</title>
+  <title>TruckGuard — Fleet Operations</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
   <style>
     :root {
-      --bg: #f5f7fb;
-      --surface: #ffffff;
-      --surface-muted: #f8fafc;
-      --border: #e5e7eb;
-      --text: #0f172a;
-      --text-muted: #64748b;
-      --brand: #1d4ed8;
-      --good: #16a34a;
-      --caution: #d97706;
-      --warning: #ea580c;
-      --critical: #dc2626;
-      --shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
-      --radius: 14px;
+      --bg:        #080809;
+      --bg2:       #0d0d0f;
+      --surface:   #111114;
+      --surface2:  #18181c;
+      --surface3:  #1f1f24;
+      --border:    rgba(255,255,255,0.07);
+      --border2:   rgba(255,255,255,0.12);
+      --text:      #f0f0f2;
+      --text-2:    #9898a6;
+      --text-3:    #55555f;
+      --accent:    #3b82f6;
+      --accent-2:  #1d4ed8;
+      --accent-dim:rgba(59,130,246,0.12);
+      --good:      #22c55e;
+      --good-dim:  rgba(34,197,94,0.12);
+      --caution:   #f59e0b;
+      --caution-dim:rgba(245,158,11,0.12);
+      --warning:   #f97316;
+      --warning-dim:rgba(249,115,22,0.12);
+      --critical:  #ef4444;
+      --critical-dim:rgba(239,68,68,0.12);
+      --radius-sm: 6px;
+      --radius:    10px;
+      --radius-lg: 14px;
+      --mono: 'DM Mono', monospace;
+      --sans: 'DM Sans', sans-serif;
+      --display: 'Syne', sans-serif;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    body {
-      margin: 0;
-      background: radial-gradient(circle at top right, #edf2ff 0%, var(--bg) 45%);
+    html, body {
+      height: 100%;
+      background: var(--bg);
       color: var(--text);
-      font-family: "Manrope", "Segoe UI", sans-serif;
-      height: 100vh;
-      overflow: hidden;
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
     }
 
+    /* ── Layout ─────────────────────────────────────────────── */
     .app {
       display: grid;
-      grid-template-rows: 64px 1fr;
-      height: 100%;
+      grid-template-rows: 56px 1fr;
+      min-height: 100vh;
+      height: auto;
     }
 
+    /* ── Topbar ─────────────────────────────────────────────── */
     .topbar {
-      display: grid;
-      grid-template-columns: 240px 1fr 320px;
+      display: flex;
       align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
       background: var(--surface);
       border-bottom: 1px solid var(--border);
-      padding: 0 18px;
-      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
-      z-index: 5;
+      position: relative;
+      z-index: 10;
     }
 
-    .logo {
-      font-size: 1.05rem;
-      font-weight: 800;
-      letter-spacing: 0.02em;
-      color: #111827;
+    .topbar::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent) 40%, transparent);
+      opacity: 0.3;
     }
 
-    .dashboard-title {
-      justify-self: center;
-      font-size: 1.05rem;
-      letter-spacing: 0.01em;
-      font-weight: 700;
-      color: #1f2937;
-    }
-
-    .top-right {
-      justify-self: end;
+    .brand {
       display: flex;
-      gap: 12px;
       align-items: center;
-    }
-
-    .clock {
-      min-width: 145px;
-      text-align: right;
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: #0f172a;
-    }
-
-    .simulate-btn {
-      border: 1px solid #bfdbfe;
-      background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
-      color: #1e3a8a;
-      height: 40px;
-      border-radius: 10px;
-      padding: 0 14px;
-      font-family: inherit;
-      font-size: 0.82rem;
-      font-weight: 800;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      cursor: pointer;
-    }
-
-    .export-btn {
-      border: 1px solid #cbd5e1;
-      background: #ffffff;
-      color: #0f172a;
-      height: 40px;
-      border-radius: 10px;
-      padding: 0 12px;
-      font-family: inherit;
-      font-size: 0.74rem;
-      font-weight: 800;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      cursor: pointer;
-    }
-
-    .simulate-btn:disabled {
-      opacity: 0.55;
-      cursor: wait;
-    }
-
-    .content {
-      display: grid;
-      grid-template-columns: 240px 1fr 280px;
-      min-height: 0;
-    }
-
-    .sidebar {
-      border-right: 1px solid var(--border);
-      background: var(--surface);
-      overflow: auto;
-      padding: 14px;
-    }
-
-    .sidebar h3 {
-      margin: 4px 0 12px;
-      font-size: 0.88rem;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--text-muted);
-    }
-
-    .session-list {
-      display: flex;
-      flex-direction: column;
       gap: 10px;
     }
 
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      background: var(--accent);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .brand-name {
+      font-family: var(--display);
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: 0.02em;
+      color: var(--text);
+    }
+
+    .brand-sep {
+      width: 1px;
+      height: 18px;
+      background: var(--border2);
+      margin: 0 8px;
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-3);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .topbar-center {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--good-dim);
+      border: 1px solid rgba(34,197,94,0.2);
+      border-radius: 999px;
+      padding: 3px 10px 3px 7px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--good);
+      letter-spacing: 0.04em;
+    }
+
+    .status-pill-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--good);
+      box-shadow: 0 0 6px var(--good);
+      animation: blink 2s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%,100% { opacity:1 } 50% { opacity:0.4 }
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .clock-display {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-2);
+      letter-spacing: 0.05em;
+      padding: 0 12px;
+    }
+
+    .btn {
+      height: 32px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border2);
+      background: var(--surface2);
+      color: var(--text-2);
+      font-family: var(--sans);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 0 12px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      border-color: var(--border2);
+      color: var(--text);
+      background: var(--surface3);
+    }
+
+    .btn:disabled { opacity: 0.4; cursor: wait; }
+
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: #2563eb;
+      border-color: #2563eb;
+      color: #fff;
+    }
+
+    /* ── Content grid ───────────────────────────────────────── */
+    .content {
+      display: grid;
+      grid-template-columns: 240px minmax(780px, 1fr) 300px;
+      min-height: calc(100vh - 56px);
+      align-items: start;
+    }
+
+    /* ── Sidebar ────────────────────────────────────────────── */
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 16px 14px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-3);
+    }
+
+    .session-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .session-list::-webkit-scrollbar { width: 4px; }
+    .session-list::-webkit-scrollbar-track { background: transparent; }
+    .session-list::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
+
     .session-item {
       border: 1px solid var(--border);
-      background: var(--surface-muted);
-      border-radius: 12px;
-      padding: 10px;
+      background: var(--surface2);
+      border-radius: var(--radius);
+      padding: 10px 12px;
       cursor: pointer;
-      transition: border-color 140ms ease, transform 140ms ease;
+      transition: all 0.12s ease;
     }
 
     .session-item:hover {
-      border-color: #bfdbfe;
-      transform: translateY(-1px);
+      border-color: var(--border2);
+      background: var(--surface3);
     }
 
     .session-item.active {
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
-      background: #eff6ff;
+      border-color: rgba(59,130,246,0.4);
+      background: var(--accent-dim);
     }
 
     .session-row {
@@ -172,1129 +275,1328 @@
       justify-content: space-between;
       align-items: center;
       gap: 8px;
-    }
-
-    .driver-name {
-      font-size: 0.87rem;
-      font-weight: 700;
-      color: #0f172a;
+      margin-bottom: 6px;
     }
 
     .driver-name-row {
-      display: inline-flex;
+      display: flex;
       align-items: center;
       gap: 7px;
+      min-width: 0;
     }
 
-    .session-live-dot {
-      width: 8px;
-      height: 8px;
+    .live-dot {
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
-      background: #22c55e;
-      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.65);
-      animation: pulse-dot 1.7s infinite;
+      background: var(--good);
+      box-shadow: 0 0 6px var(--good);
       flex-shrink: 0;
+      animation: blink 1.8s ease-in-out infinite;
+    }
+
+    .driver-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .truck-id {
-      margin-top: 3px;
-      font-size: 0.75rem;
-      color: #475569;
-      font-weight: 600;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-3);
+      margin-bottom: 4px;
     }
 
-    .duration {
-      margin-top: 6px;
-      font-size: 0.73rem;
-      color: #64748b;
-      font-weight: 600;
+    .session-duration {
+      font-size: 10px;
+      color: var(--text-3);
+      font-weight: 500;
     }
 
+    /* ── Badge ──────────────────────────────────────────────── */
     .badge {
-      font-size: 0.68rem;
-      padding: 5px 10px;
-      border-radius: 999px;
-      border: none;
-      font-weight: 800;
-      letter-spacing: 0.08em;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
+      padding: 3px 7px;
+      border-radius: 4px;
+      border: 1px solid transparent;
       white-space: nowrap;
     }
 
-    .badge-normal {
-      color: #166534;
-      background: #dcfce7;
-      border-color: #86efac;
-    }
+    .badge-normal   { color: var(--good);    background: var(--good-dim);     border-color: rgba(34,197,94,0.2); }
+    .badge-caution  { color: var(--caution); background: var(--caution-dim);  border-color: rgba(245,158,11,0.2); }
+    .badge-warning  { color: var(--warning); background: var(--warning-dim);  border-color: rgba(249,115,22,0.2); }
+    .badge-critical { color: var(--critical);background: var(--critical-dim); border-color: rgba(239,68,68,0.2); }
 
-    .badge-caution {
-      color: #92400e;
-      background: #fef3c7;
-      border-color: #fcd34d;
-    }
-
-    .badge-warning {
-      color: #9a3412;
-      background: #ffedd5;
-      border-color: #fdba74;
-    }
-
-    .badge-critical {
-      color: #991b1b;
-      background: #fee2e2;
-      border-color: #fca5a5;
-    }
-
+    /* ── Main area ──────────────────────────────────────────── */
     .main {
-      min-width: 0;
-      overflow: auto;
+      overflow: visible;
+      padding: 20px;
+      background: var(--bg2);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .main::-webkit-scrollbar { width: 5px; }
+    .main::-webkit-scrollbar-track { background: transparent; }
+    .main::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+
+    /* ── Card / Panel ───────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-title {
+      font-family: var(--display);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-2);
+    }
+
+    .card-body {
+      padding: 18px;
+    }
+
+    /* ── Driver hero card ───────────────────────────────────── */
+    .driver-hero {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 20px;
+      align-items: start;
       padding: 20px;
     }
 
-    .panel {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-    }
-
-    .driver-card {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 18px;
-      padding: 18px;
-      margin-bottom: 16px;
-    }
-
     .driver-headline {
-      margin: 0;
-      font-size: 1.2rem;
+      font-family: var(--display);
+      font-size: 22px;
       font-weight: 800;
-      color: #0f172a;
+      color: var(--text);
+      letter-spacing: -0.01em;
+      margin-bottom: 4px;
     }
 
     .driver-sub {
-      margin-top: 6px;
-      font-size: 0.85rem;
-      color: #64748b;
-      font-weight: 600;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-3);
+      letter-spacing: 0.04em;
     }
 
-    .metrics {
-      margin-top: 14px;
+    .metrics-row {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(3, 1fr);
       gap: 10px;
+      margin-top: 16px;
     }
 
-    .metric {
+    .metric-tile {
+      background: var(--surface2);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px;
-      background: #fcfdff;
+      border-radius: var(--radius);
+      padding: 12px 14px;
     }
 
     .metric-label {
-      font-size: 0.7rem;
-      color: #64748b;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
-      letter-spacing: 0.09em;
-      font-weight: 700;
+      color: var(--text-3);
+      margin-bottom: 6px;
     }
 
     .metric-value {
-      margin-top: 4px;
-      font-size: 1rem;
-      font-weight: 800;
-      color: #0f172a;
+      font-family: var(--mono);
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--text);
+      letter-spacing: -0.02em;
     }
 
-    .alert-stack {
-      min-width: 190px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: end;
+    .alert-badge-large {
+      padding: 10px 18px;
+      border-radius: var(--radius);
+      font-family: var(--display);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border: 1px solid transparent;
+      text-align: center;
+    }
+
+    .alert-sub {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-3);
+      text-align: center;
+      margin-top: 6px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    /* ── Credentials ────────────────────────────────────────── */
+    .cred-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
       gap: 8px;
     }
 
-    .alert-large {
-      font-size: 0.9rem;
-      padding: 9px 14px;
-      border-radius: 999px;
+    .cred-tile {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+    }
+
+    .cred-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
-      font-weight: 800;
-      border: 1px solid transparent;
+      color: var(--text-3);
+      margin-bottom: 6px;
     }
 
-    .section {
-      padding: 16px;
-      margin-bottom: 16px;
+    .cred-value {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text);
+      font-weight: 500;
+      margin-bottom: 4px;
     }
 
-    .section-title {
-      margin: 0 0 12px;
-      font-size: 0.9rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      font-weight: 800;
-      color: #334155;
+    .cred-expiry {
+      font-size: 10px;
+      color: var(--text-3);
     }
 
-    .chart-wrap {
-      height: 280px;
+    /* ── Delivery Timeline ──────────────────────────────────── */
+    .timeline-wrap {
+      padding: 22px 24px 20px;
     }
 
-    .table-wrap {
-      overflow: auto;
+    .timeline-track {
+      position: relative;
+      --step-count: 4;
+      --track-start: calc(50% / var(--step-count));
+      --track-span: calc(100% - (100% / var(--step-count)));
+      display: grid;
+      grid-template-columns: repeat(var(--step-count), minmax(0, 1fr));
+      align-items: flex-start;
+      gap: 0;
     }
 
-    .row-normal {
-      background: rgba(22, 163, 74, 0.05);
+    /* connecting line behind everything */
+    .timeline-track::before {
+      content: '';
+      position: absolute;
+      top: 17px;
+      left: var(--track-start);
+      width: var(--track-span);
+      height: 2px;
+      background: var(--surface3);
+      border-radius: 1px;
+      z-index: 0;
     }
 
-    .row-caution {
-      background: rgba(217, 119, 6, 0.05);
+    .timeline-fill {
+      position: absolute;
+      top: 17px;
+      left: var(--track-start);
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent-2), var(--accent));
+      border-radius: 1px;
+      z-index: 1;
+      transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+      box-shadow: 0 0 10px rgba(59,130,246,0.4);
     }
 
-    .row-warning {
-      background: rgba(234, 88, 12, 0.06);
+    .timeline-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      position: relative;
+      z-index: 2;
     }
 
-    .row-critical {
-      background: rgba(220, 38, 38, 0.07);
+    .timeline-node {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--surface3);
+      border: 2px solid var(--surface3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      position: relative;
     }
+
+    .timeline-node-inner {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--text-3);
+      transition: all 0.3s ease;
+    }
+
+    .timeline-step.completed .timeline-node {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+    }
+
+    .timeline-step.completed .timeline-node-inner {
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    .timeline-step.current .timeline-node {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(59,130,246,0.15);
+    }
+
+    .timeline-step.current .timeline-node-inner {
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent);
+      animation: node-pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes node-pulse {
+      0%,100% { box-shadow: 0 0 6px var(--accent); transform: scale(1); }
+      50% { box-shadow: 0 0 14px var(--accent); transform: scale(1.2); }
+    }
+
+    .timeline-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-align: center;
+      color: var(--text-3);
+      letter-spacing: 0.03em;
+      max-width: 90px;
+      line-height: 1.35;
+      transition: color 0.3s ease;
+    }
+
+    .timeline-step.completed .timeline-label,
+    .timeline-step.current .timeline-label {
+      color: var(--text-2);
+    }
+
+    .timeline-time {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--text-3);
+      text-align: center;
+      letter-spacing: 0.03em;
+    }
+
+    .timeline-step.completed .timeline-time,
+    .timeline-step.current .timeline-time {
+      color: var(--accent);
+    }
+
+    .truck-icon {
+      position: absolute;
+      top: -6px;
+      font-size: 18px;
+      transition: left 0.6s cubic-bezier(0.4,0,0.2,1);
+      filter: drop-shadow(0 0 6px rgba(59,130,246,0.6));
+      z-index: 3;
+      pointer-events: none;
+      transform: translateX(-50%) scaleX(-1);
+    }
+
+    @media (max-width: 1480px) {
+      .content {
+        grid-template-columns: 220px minmax(0, 1fr);
+      }
+
+      .right-panel {
+        grid-column: 1 / -1;
+        border-left: none;
+        border-top: 1px solid var(--border);
+        min-height: 280px;
+      }
+    }
+
+    @media (max-width: 980px) {
+      .content {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .session-list {
+        max-height: 230px;
+      }
+
+      .driver-hero {
+        grid-template-columns: 1fr;
+      }
+
+      .metrics-row,
+      .cred-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    /* ── Chart ──────────────────────────────────────────────── */
+    .chart-container {
+      height: 240px;
+      padding: 4px 0;
+    }
+
+    /* ── Table ──────────────────────────────────────────────── */
+    .table-scroll {
+      overflow-x: auto;
+    }
+
+    .table-scroll::-webkit-scrollbar { height: 4px; }
+    .table-scroll::-webkit-scrollbar-track { background: transparent; }
+    .table-scroll::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 920px;
+      min-width: 860px;
     }
 
-    th,
-    td {
-      text-align: left;
-      padding: 10px;
-      border-bottom: 1px solid #edf2f7;
-      vertical-align: top;
+    thead tr {
+      border-bottom: 1px solid var(--border);
     }
 
     th {
-      font-size: 0.72rem;
-      color: #64748b;
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
-      font-weight: 800;
+      color: var(--text-3);
     }
 
     td {
-      font-size: 0.79rem;
-      color: #1f2937;
-      font-weight: 600;
-      max-width: 220px;
+      padding: 11px 14px;
+      font-size: 12px;
+      color: var(--text-2);
+      border-bottom: 1px solid var(--border);
+      max-width: 200px;
+      vertical-align: middle;
     }
 
-    .score-low {
-      color: #166534;
-      font-weight: 800;
+    tbody tr:last-child td { border-bottom: none; }
+
+    tbody tr:hover td { background: var(--surface2); }
+
+    .row-normal td:first-child   { border-left: 2px solid var(--good); }
+    .row-caution td:first-child  { border-left: 2px solid var(--caution); }
+    .row-warning td:first-child  { border-left: 2px solid var(--warning); }
+    .row-critical td:first-child { border-left: 2px solid var(--critical); }
+
+    .score-mono {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 500;
     }
 
-    .score-mid {
-      color: #92400e;
-      font-weight: 800;
-    }
+    .score-low      { color: var(--good); }
+    .score-mid      { color: var(--caution); }
+    .score-high     { color: var(--warning); }
+    .score-critical { color: var(--critical); }
 
-    .score-high {
-      color: #9a3412;
-      font-weight: 800;
-    }
-
-    .score-critical {
-      color: #b91c1c;
-      font-weight: 800;
-    }
-
-    .breakdown {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
-    }
-
-    .signal-card {
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      background: #fcfdff;
-      padding: 12px;
-    }
-
-    .signal-title {
-      font-size: 0.72rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #64748b;
-      font-weight: 800;
-    }
-
-    .signal-value {
-      margin-top: 6px;
-      font-size: 1.15rem;
-      font-weight: 800;
-      color: #0f172a;
-    }
-
-    .signal-high {
-      color: var(--critical);
-    }
-
-    .signal-warning {
-      color: var(--warning);
-    }
-
+    /* ── Right feed panel ───────────────────────────────────── */
     .right-panel {
-      border-left: 1px solid var(--border);
       background: var(--surface);
+      border-left: 1px solid var(--border);
       display: flex;
       flex-direction: column;
-      min-height: 0;
+      overflow: hidden;
     }
 
     .feed-header {
-      padding: 16px;
+      padding: 14px 16px;
       border-bottom: 1px solid var(--border);
-      font-size: 0.86rem;
-      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .feed-title {
+      font-family: var(--display);
+      font-size: 11px;
+      font-weight: 700;
       letter-spacing: 0.1em;
-      color: #475569;
-      font-weight: 800;
+      text-transform: uppercase;
+      color: var(--text-2);
+    }
+
+    .feed-count {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-3);
     }
 
     .feed-list {
-      overflow: auto;
-      padding: 12px;
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      min-height: 0;
+      gap: 8px;
     }
+
+    .feed-list::-webkit-scrollbar { width: 4px; }
+    .feed-list::-webkit-scrollbar-track { background: transparent; }
+    .feed-list::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
 
     .feed-entry {
+      background: var(--surface2);
       border: 1px solid var(--border);
-      background: #fbfdff;
-      border-radius: 12px;
-      padding: 10px;
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      border-left: 3px solid var(--border2);
+      transition: border-color 0.2s ease;
     }
 
-    .feed-entry.new-entry {
-      animation: feed-slide-in 360ms ease;
+    .feed-entry.new-entry { animation: slide-in 0.3s ease; }
+
+    @keyframes slide-in {
+      from { opacity: 0; transform: translateX(20px); }
+      to   { opacity: 1; transform: translateX(0); }
     }
 
-    .feed-time {
-      font-size: 0.7rem;
-      color: #64748b;
-      font-weight: 700;
-      margin-bottom: 4px;
+    .feed-entry.level-normal   { border-left-color: var(--good); }
+    .feed-entry.level-caution  { border-left-color: var(--caution); }
+    .feed-entry.level-warning  { border-left-color: var(--warning); }
+    .feed-entry.level-critical { border-left-color: var(--critical); }
+
+    .feed-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
     }
 
     .feed-driver {
-      font-size: 0.76rem;
-      color: #334155;
-      font-weight: 800;
-      margin-bottom: 6px;
-      text-transform: uppercase;
+      font-size: 10px;
+      font-weight: 700;
       letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--text-2);
+    }
+
+    .feed-time {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--text-3);
     }
 
     .feed-reasoning {
-      font-size: 0.76rem;
-      color: #0f172a;
-      line-height: 1.45;
+      font-size: 11px;
+      color: var(--text-2);
+      line-height: 1.5;
       margin-bottom: 8px;
+    }
+
+    .feed-readmore {
+      font-size: 10px;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+
+    .feed-readmore summary {
+      cursor: pointer;
+      user-select: none;
       font-weight: 600;
+    }
+
+    .feed-readmore p {
+      margin-top: 6px;
+      color: var(--text-2);
+      line-height: 1.45;
     }
 
     .tag-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 4px;
     }
 
     .tag {
-      font-size: 0.64rem;
-      border-radius: 999px;
-      padding: 3px 7px;
-      border: 1px solid #c7d2fe;
-      background: #eef2ff;
-      color: #3730a3;
-      font-weight: 800;
-      letter-spacing: 0.06em;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.07em;
       text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: var(--accent-dim);
+      border: 1px solid rgba(59,130,246,0.2);
+      color: #93c5fd;
     }
 
-    .feed-entry.level-normal {
-      border-left: 4px solid #22c55e;
-    }
-
-    .feed-entry.level-caution {
-      border-left: 4px solid #eab308;
-    }
-
-    .feed-entry.level-warning {
-      border-left: 4px solid #f97316;
-    }
-
-    .feed-entry.level-critical {
-      border-left: 4px solid #ef4444;
-    }
-
+    /* ── Empty states ───────────────────────────────────────── */
     .empty {
-      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 24px;
       text-align: center;
-      color: #64748b;
-      font-weight: 600;
+      gap: 8px;
     }
 
-    @keyframes feed-slide-in {
-      from {
-        opacity: 0;
-        transform: translateX(36px);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
+    .empty-icon { font-size: 28px; opacity: 0.3; }
+
+    .empty-text {
+      font-size: 12px;
+      color: var(--text-3);
+      font-weight: 500;
     }
 
+    /* ── Misc ───────────────────────────────────────────────── */
     @keyframes pulse-dot {
-      0%,
-      100% {
-        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.65);
-      }
-      50% {
-        box-shadow: 0 0 0 7px rgba(34, 197, 94, 0);
-      }
+      0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.6); }
+      50%      { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
     }
   </style>
 </head>
 <body>
-  <div class="app">
-    <header class="topbar">
-      <div class="logo">TruckGuard</div>
-      <div class="dashboard-title">Fleet Dashboard</div>
-      <div class="top-right">
-        <button id="exportPdfBtn" class="export-btn" type="button">Export Session PDF (Coming Soon)</button>
-        <button id="simulateBtn" class="simulate-btn" type="button">Simulate Driver</button>
-        <div id="liveClock" class="clock">--:--:--</div>
-      </div>
-    </header>
+<div class="app">
 
-    <div class="content">
-      <aside class="sidebar">
-        <h3>Active Sessions</h3>
-        <div id="sessionList" class="session-list"></div>
-      </aside>
-
-      <main id="mainArea" class="main"></main>
-
-      <aside class="right-panel">
-        <div class="feed-header">AI Analysis Feed</div>
-        <div id="feedList" class="feed-list"></div>
-      </aside>
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">🛡</div>
+      <div class="brand-name">TruckGuard</div>
+      <div class="brand-sep"></div>
+      <div class="brand-sub">Fleet Operations</div>
     </div>
+
+    <div class="topbar-center">
+      <div class="status-pill">
+        <div class="status-pill-dot"></div>
+        All Systems Operational
+      </div>
+    </div>
+
+    <div class="topbar-right">
+      <div class="clock-display" id="liveClock">--:--:--</div>
+      <button class="btn" id="exportPdfBtn" type="button">Export PDF</button>
+      <button class="btn btn-primary" id="simulateBtn" type="button">+ Simulate Driver</button>
+    </div>
+  </header>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-label">Active Sessions</div>
+      </div>
+      <div class="session-list" id="sessionList">
+        <div class="empty"><div class="empty-icon">🚛</div><div class="empty-text">No sessions yet</div></div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main" id="mainArea">
+      <div class="empty" style="flex:1;justify-content:center;">
+        <div class="empty-icon">📊</div>
+        <div class="empty-text">Select a driver session to view analytics</div>
+      </div>
+    </main>
+
+    <!-- RIGHT PANEL -->
+    <aside class="right-panel">
+      <div class="feed-header">
+        <div class="feed-title">AI Analysis Feed</div>
+        <div class="feed-count" id="feedCount">0 events</div>
+      </div>
+      <div class="feed-list" id="feedList">
+        <div class="empty"><div class="empty-icon">🤖</div><div class="empty-text">Waiting for check-in data…</div></div>
+      </div>
+    </aside>
+
   </div>
+</div>
 
-  <script>
-    const SERVER = 'http://localhost:3000';
+<script>
+  const SERVER = 'http://localhost:3000';
 
-    const state = {
-      sessions: {},
-      sessionMeta: {},
-      sessionMetaOverrides: {},
-      selectedSessionId: null,
-      selectedLength: 0,
-      chart: null,
-      chartHasAnimated: false,
-      feedEntries: [],
-      seenCheckIns: new Set()
+  const state = {
+    sessions: {},
+    sessionMeta: {},
+    sessionMetaOverrides: {},
+    statusTimelines: {},
+    selectedSessionId: null,
+    selectedLength: 0,
+    chart: null,
+    chartHasAnimated: false,
+    feedEntriesBySession: {},
+    seenCheckIns: new Set(),
+    simulationStatusTimers: {}
+  };
+
+  const STATUS_STEPS = [
+    { key: 'loaded_to_truck',        label: 'Loaded onto Truck',         icon: '📦' },
+    { key: 'out_for_delivery',       label: 'Out for Delivery',          icon: '🚛' },
+    { key: 'delivered_safe_drop',    label: 'Safe Drop Delivered',       icon: '🏠' },
+    { key: 'delivered_access_point', label: 'Access Point Delivered',    icon: '✅' }
+  ];
+
+  const criticalThresholdPlugin = {
+    id: 'criticalThresholdPlugin',
+    afterDraw(chart) {
+      const yScale = chart.scales.y;
+      const xScale = chart.scales.x;
+      if (!yScale || !xScale) return;
+      const yPixel = yScale.getPixelForValue(8);
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = 'rgba(239,68,68,0.5)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(xScale.left, yPixel);
+      ctx.lineTo(xScale.right, yPixel);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(239,68,68,0.7)';
+      ctx.font = '500 10px DM Mono, monospace';
+      ctx.fillText('Critical', xScale.left + 8, yPixel - 6);
+      ctx.restore();
+    }
+  };
+
+  // ── Helpers ─────────────────────────────────────────────────
+  function levelToUi(level, score) {
+    const n = String(level || '').toUpperCase();
+    if (['NORMAL','CAUTION','WARNING','CRITICAL'].includes(n)) return n;
+    if (n === 'LOW') return 'NORMAL';
+    if (n === 'MEDIUM') return 'CAUTION';
+    if (n === 'HIGH') return Number(score) >= 9 ? 'CRITICAL' : 'WARNING';
+    const num = Number(score);
+    if (!isNaN(num)) {
+      if (num >= 9) return 'CRITICAL';
+      if (num >= 7) return 'WARNING';
+      if (num >= 4) return 'CAUTION';
+    }
+    return 'NORMAL';
+  }
+
+  function badgeClass(level) {
+    return { NORMAL:'badge-normal', CAUTION:'badge-caution', WARNING:'badge-warning', CRITICAL:'badge-critical' }[level] || 'badge-normal';
+  }
+
+  function scoreClass(score) {
+    if (score >= 9) return 'score-critical';
+    if (score >= 7) return 'score-high';
+    if (score >= 4) return 'score-mid';
+    return 'score-low';
+  }
+
+  function colorForScore(s) {
+    if (s > 7) return '#ef4444';
+    if (s > 4) return '#f97316';
+    return '#22c55e';
+  }
+
+  function formatDuration(ms) {
+    if (!isFinite(ms) || ms <= 0) return '0h 00m';
+    const m = Math.floor(ms / 60000);
+    return `${Math.floor(m/60)}h ${String(m%60).padStart(2,'0')}m`;
+  }
+
+  function formatClock() {
+    return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  }
+
+  function formatLocalDateTime(v) {
+    const d = v ? new Date(v) : null;
+    if (!d || isNaN(d)) return '--';
+    return d.toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  }
+
+  function formatShiftTime(h) {
+    const hours = Number(h);
+    if (!isFinite(hours) || hours < 0) return '--';
+    const m = Math.round(hours * 60);
+    return `${Math.floor(m/60)}h ${String(m%60).padStart(2,'0')}m`;
+  }
+
+  function formatShortTime(v) {
+    const d = v ? new Date(v) : null;
+    if (!d || isNaN(d)) return '--';
+    return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  }
+
+  function wc(text) {
+    const c = String(text||'').trim();
+    return c ? c.split(/\s+/).length : 0;
+  }
+
+  function trunc(text, n) {
+    const c = String(text||'');
+    return c.length <= n ? c : c.slice(0,n-1)+'…';
+  }
+
+  function esc(v) {
+    return String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  function hashSeed(input) {
+    let h = 0;
+    for (let i=0;i<input.length;i++) h = ((h<<5)-h+input.charCodeAt(i))|0;
+    return Math.abs(h);
+  }
+
+  function seededCode(seed, prefix, length) {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let v = '', c = seed;
+    for (let i=0;i<length;i++) { c=(c*1664525+1013904223)%4294967296; v+=chars[c%chars.length]; }
+    return `${prefix}-${v}`;
+  }
+
+  function seededExpiry(seed, minY, maxY) {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() + minY + (seed % Math.max(1,maxY-minY+1)));
+    d.setMonth(seed%12); d.setDate((seed>>3)%28+1);
+    return d.toLocaleDateString([],{year:'numeric',month:'short',day:'numeric'});
+  }
+
+  function buildCreds(meta, sessionId) {
+    const seed = hashSeed(`${meta.driverName||''}|${meta.truckId||''}|${sessionId||''}`);
+    return {
+      driverId: meta.truckId || seededCode(seed+7,'DRV',6),
+      licenseNumber: seededCode(seed+11,'ON',8),
+      registrationNumber: seededCode(seed+19,'REG',8),
+      warrantyNumber: seededCode(seed+29,'WAR',8),
+      licenseExpiry: seededExpiry(seed+31,1,5),
+      registrationExpiry: seededExpiry(seed+41,1,3),
+      warrantyExpiry: seededExpiry(seed+53,1,2)
     };
+  }
 
-    const criticalThresholdPlugin = {
-      id: 'criticalThresholdPlugin',
-      afterDraw(chart) {
-        const yScale = chart.scales.y;
-        const xScale = chart.scales.x;
-        if (!yScale || !xScale) return;
+  function normalizeSessionsPayload(p) {
+    if (p?.sessions) return { sessions: p.sessions, meta: p.sessionMeta||{} };
+    return { sessions: p&&typeof p==='object'?p:{}, meta:{} };
+  }
 
-        const yPixel = yScale.getPixelForValue(8);
-        const ctx = chart.ctx;
+  function normalizeSessionDetail(p, sessionId) {
+    if (Array.isArray(p)) return { checkIns: p, driver: state.sessionMeta[sessionId]||state.sessionMetaOverrides[sessionId]||{} };
+    if (p&&typeof p==='object') return { checkIns: Array.isArray(p.checkIns)?p.checkIns:[], driver: p.driver||state.sessionMeta[sessionId]||state.sessionMetaOverrides[sessionId]||{} };
+    return { checkIns:[], driver:{} };
+  }
 
-        ctx.save();
-        ctx.setLineDash([6, 6]);
-        ctx.strokeStyle = '#dc2626';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(xScale.left, yPixel);
-        ctx.lineTo(xScale.right, yPixel);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = '#b91c1c';
-        ctx.font = '11px Manrope';
-        ctx.fillText('Critical threshold', xScale.left + 8, yPixel - 7);
-        ctx.restore();
-      }
+  function getSessionMeta(sessionId, checkIns) {
+    const list = Array.isArray(checkIns)?checkIns:[];
+    return {
+      driverName:`Driver ${String(sessionId).slice(-4)}`,
+      truckId:'TRUCK-UNKNOWN',
+      startedAt: list[0]?.timestamp||null,
+      ...(state.sessionMeta[sessionId]||{}),
+      ...(state.sessionMetaOverrides[sessionId]||{})
     };
+  }
 
-    const mainArea = document.getElementById('mainArea');
-    const sessionListEl = document.getElementById('sessionList');
-    const feedListEl = document.getElementById('feedList');
-    const liveClockEl = document.getElementById('liveClock');
-    const simulateBtn = document.getElementById('simulateBtn');
-    const exportPdfBtn = document.getElementById('exportPdfBtn');
+  function reasoningForCheckIn(checkIn, level) {
+    const d = checkIn?.llmAnalysis?.reasoning;
+    if (d && !String(d).toLowerCase().includes('not configured')) return d;
+    if (level==='NORMAL') return 'Response appears coherent and stable with low fatigue indicators.';
+    if (level==='CAUTION') return 'Mild fatigue signs present. Recommend a short rest soon.';
+    if (level==='WARNING') return 'Noticeable fatigue cues and slower response timing detected.';
+    return 'Severe fatigue risk profile. Immediate safe pull-over recommended.';
+  }
 
-    function levelToUi(level, score) {
-      const normalized = String(level || '').toUpperCase();
-      if (['NORMAL', 'CAUTION', 'WARNING', 'CRITICAL'].includes(normalized)) return normalized;
-      if (normalized === 'LOW') return 'NORMAL';
-      if (normalized === 'MEDIUM') return 'CAUTION';
-      if (normalized === 'HIGH') return Number(score) >= 9 ? 'CRITICAL' : 'WARNING';
+  async function getJson(url) {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`${r.status}`);
+    return r.json();
+  }
 
-      const numeric = Number(score);
-      if (!Number.isNaN(numeric)) {
-        if (numeric >= 9) return 'CRITICAL';
-        if (numeric >= 7) return 'WARNING';
-        if (numeric >= 4) return 'CAUTION';
-      }
-      return 'NORMAL';
-    }
-
-    function badgeClass(level) {
-      if (level === 'NORMAL') return 'badge-normal';
-      if (level === 'CAUTION') return 'badge-caution';
-      if (level === 'WARNING') return 'badge-warning';
-      return 'badge-critical';
-    }
-
-    function scoreClass(score) {
-      if (score >= 9) return 'score-critical';
-      if (score >= 7) return 'score-high';
-      if (score >= 4) return 'score-mid';
-      return 'score-low';
-    }
-
-    function colorForScore(score) {
-      if (score > 7) return '#ef4444';
-      if (score > 4) return '#f97316';
-      return '#22c55e';
-    }
-
-    function formatDuration(ms) {
-      if (!Number.isFinite(ms) || ms <= 0) return '0h 00m';
-      const totalMinutes = Math.floor(ms / 60000);
-      const hours = Math.floor(totalMinutes / 60);
-      const minutes = totalMinutes % 60;
-      return `${hours}h ${String(minutes).padStart(2, '0')}m`;
-    }
-
-    function formatClock() {
-      return new Date().toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-      });
-    }
-
-    function formatLocalDateTime(value) {
-      const date = value ? new Date(value) : null;
-      if (!date || Number.isNaN(date.getTime())) return '--';
-      return date.toLocaleString([], {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    }
-
-    function formatShiftTimeFromHours(hoursOnRoad) {
-      const hours = Number(hoursOnRoad);
-      if (!Number.isFinite(hours) || hours < 0) return '--';
-      const totalMinutes = Math.round(hours * 60);
-      const wholeHours = Math.floor(totalMinutes / 60);
-      const minutes = totalMinutes % 60;
-      return `${wholeHours}h ${String(minutes).padStart(2, '0')}m`;
-    }
-
-    function wordCount(text) {
-      const clean = String(text || '').trim();
-      if (!clean) return 0;
-      return clean.split(/\s+/).length;
-    }
-
-    function truncate(text, maxLength) {
-      const clean = String(text || '');
-      if (clean.length <= maxLength) return clean;
-      return `${clean.slice(0, maxLength - 1)}…`;
-    }
-
-    function normalizeSessionsPayload(payload) {
-      if (payload && typeof payload === 'object' && payload.sessions && typeof payload.sessions === 'object') {
-        return {
-          sessions: payload.sessions,
-          meta: payload.sessionMeta || {}
-        };
-      }
-
-      return {
-        sessions: payload && typeof payload === 'object' ? payload : {},
-        meta: {}
-      };
-    }
-
-    function normalizeSessionDetail(payload, sessionId) {
-      if (Array.isArray(payload)) {
-        return {
-          checkIns: payload,
-          driver: state.sessionMeta[sessionId] || state.sessionMetaOverrides[sessionId] || {}
-        };
-      }
-
-      if (payload && typeof payload === 'object') {
-        return {
-          checkIns: Array.isArray(payload.checkIns) ? payload.checkIns : [],
-          driver: payload.driver || state.sessionMeta[sessionId] || state.sessionMetaOverrides[sessionId] || {}
-        };
-      }
-
-      return { checkIns: [], driver: {} };
-    }
-
-    function getSessionMeta(sessionId, checkIns) {
-      const checkInList = Array.isArray(checkIns) ? checkIns : [];
-      const fromApi = state.sessionMeta[sessionId] || {};
-      const fromOverride = state.sessionMetaOverrides[sessionId] || {};
-      const fallback = {
-        driverName: `Driver ${String(sessionId).slice(-4)}`,
-        truckId: 'TRUCK-UNKNOWN',
-        startedAt: checkInList[0]?.timestamp || null
-      };
-
-      return {
-        ...fallback,
-        ...fromApi,
-        ...fromOverride
-      };
-    }
-
-    async function getJson(url) {
-      const response = await fetch(url, { method: 'GET' });
-      if (!response.ok) throw new Error(`Request failed: ${response.status}`);
-      return response.json();
-    }
-
-    function renderSidebar() {
-      const entries = Object.entries(state.sessions)
-        .map(([sessionId, checkIns]) => {
-          const safeCheckIns = Array.isArray(checkIns) ? checkIns : [];
-          const meta = getSessionMeta(sessionId, safeCheckIns);
-          const last = safeCheckIns[safeCheckIns.length - 1] || {};
-          const level = levelToUi(last.level, last.score);
-          const startTime = meta.startedAt ? new Date(meta.startedAt).getTime() : null;
-          const durationMs = startTime ? Date.now() - startTime : 0;
-          const lastStamp = last.timestamp ? new Date(last.timestamp).getTime() : 0;
-
-          return {
-            sessionId,
-            checkIns: safeCheckIns,
-            meta,
-            level,
-            durationMs,
-            lastStamp
-          };
-        })
-        .sort((a, b) => b.lastStamp - a.lastStamp);
-
-      if (!entries.length) {
-        sessionListEl.innerHTML = '<div class="empty">No active sessions yet.</div>';
-        return;
-      }
-
-      sessionListEl.innerHTML = entries.map((entry) => {
-        const isActive = entry.sessionId === state.selectedSessionId;
-        return `
-          <div class="session-item ${isActive ? 'active' : ''}" data-session-id="${entry.sessionId}">
-            <div class="session-row">
-              <div class="driver-name-row"><span class="session-live-dot"></span><div class="driver-name">${entry.meta.driverName || 'Driver'}</div></div>
-              <span class="badge ${badgeClass(entry.level)}">${entry.level}</span>
-            </div>
-            <div class="truck-id">${entry.meta.truckId || 'TRUCK-UNKNOWN'}</div>
-            <div class="duration">Shift ${formatDuration(entry.durationMs)}</div>
-          </div>
-        `;
-      }).join('');
-
-      sessionListEl.querySelectorAll('.session-item').forEach((item) => {
-        item.addEventListener('click', () => {
-          const sessionId = item.getAttribute('data-session-id');
-          if (!sessionId) return;
-          selectSession(sessionId);
-        });
-      });
-    }
-
-    function reasoningForCheckIn(checkIn, level) {
-      const direct = checkIn?.llmAnalysis?.reasoning;
-      if (direct && !String(direct).toLowerCase().includes('not configured')) return direct;
-
-      if (level === 'NORMAL') return 'Response appears coherent and stable with low fatigue indicators.';
-      if (level === 'CAUTION') return 'Mild fatigue signs present. Recommend a short rest soon.';
-      if (level === 'WARNING') return 'Noticeable fatigue cues and slower response timing were detected.';
-      return 'Severe fatigue risk profile. Immediate safe pull-over is recommended.';
-    }
-
-    function addFeedEntries(sessionId, driverName, checkIns, isNew) {
-      checkIns.forEach((checkIn) => {
-        const id = checkIn.checkInId || `${sessionId}-${checkIn.timestamp || ''}-${checkIn.checkInNumber || ''}`;
-        if (state.seenCheckIns.has(id)) return;
-
-        state.seenCheckIns.add(id);
-
-        const level = levelToUi(checkIn.level, checkIn.score);
-        const reasoning = reasoningForCheckIn(checkIn, level);
-        const indicators = Array.isArray(checkIn?.llmAnalysis?.fatigueIndicators)
-          ? checkIn.llmAnalysis.fatigueIndicators
-          : [];
-
-        state.feedEntries.unshift({
-          id,
-          timestamp: checkIn.timestamp || new Date().toISOString(),
-          driverName,
-          reasoning,
-          indicators,
-          level,
-          isNew
-        });
-      });
-
-      if (state.feedEntries.length > 200) {
-        state.feedEntries = state.feedEntries.slice(0, 200);
-      }
-
-      renderFeed();
-    }
-
-    function renderFeed() {
-      if (!state.feedEntries.length) {
-        feedListEl.innerHTML = '<div class="empty">Waiting for LLM check-in analysis...</div>';
-        return;
-      }
-
-      feedListEl.innerHTML = state.feedEntries.map((entry) => {
-        const indicatorTags = entry.indicators.length
-          ? entry.indicators.map((tag) => `<span class="tag">${tag}</span>`).join('')
-          : '<span class="tag">No indicators</span>';
-
-        return `
-          <div class="feed-entry level-${entry.level.toLowerCase()} ${entry.isNew ? 'new-entry' : ''}">
-            <div class="feed-time">${formatLocalDateTime(entry.timestamp)}</div>
-            <div class="feed-driver">${entry.driverName}</div>
-            <div class="feed-reasoning">${truncate(entry.reasoning, 120)}</div>
-            <div class="tag-row">${indicatorTags}</div>
-          </div>
-        `;
-      }).join('');
-
-      state.feedEntries.forEach((entry) => {
-        entry.isNew = false;
-      });
-    }
-
-    function renderMain(sessionId, checkIns, meta) {
-      if (!sessionId || !checkIns) {
-        mainArea.innerHTML = '<div class="panel empty">Select an active session to view details.</div>';
-        return;
-      }
-
-      const safeCheckIns = Array.isArray(checkIns) ? checkIns : [];
-      const last = safeCheckIns[safeCheckIns.length - 1] || {};
+  // ── Sidebar ──────────────────────────────────────────────────
+  function renderSidebar() {
+    const el = document.getElementById('sessionList');
+    const entries = Object.entries(state.sessions).map(([sid, cis]) => {
+      const safe = Array.isArray(cis)?cis:[];
+      const meta = getSessionMeta(sid, safe);
+      const last = safe[safe.length-1]||{};
       const level = levelToUi(last.level, last.score);
       const startMs = meta.startedAt ? new Date(meta.startedAt).getTime() : null;
-      const totalHours = startMs ? ((Date.now() - startMs) / 3600000).toFixed(1) : '--';
+      return { sid, safe, meta, level, durationMs: startMs?Date.now()-startMs:0, lastStamp: last.timestamp?new Date(last.timestamp).getTime():0 };
+    }).sort((a,b)=>b.lastStamp-a.lastStamp);
 
-      mainArea.innerHTML = `
-        <section class="panel driver-card">
+    if (!entries.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">🚛</div><div class="empty-text">No sessions yet</div></div>';
+      return;
+    }
+
+    el.innerHTML = entries.map(e => `
+      <div class="session-item ${e.sid===state.selectedSessionId?'active':''}" data-sid="${e.sid}">
+        <div class="session-row">
+          <div class="driver-name-row">
+            <div class="live-dot"></div>
+            <div class="driver-name">${esc(e.meta.driverName||'Driver')}</div>
+          </div>
+          <span class="badge ${badgeClass(e.level)}">${e.level}</span>
+        </div>
+        <div class="truck-id">${esc(e.meta.truckId||'TRUCK-UNKNOWN')}</div>
+        <div class="session-duration">Shift ${formatDuration(e.durationMs)}</div>
+      </div>
+    `).join('');
+
+    el.querySelectorAll('.session-item').forEach(item => {
+      item.addEventListener('click', () => selectSession(item.dataset.sid));
+    });
+  }
+
+  // ── Feed ────────────────────────────────────────────────────
+  function addFeedEntries(sessionId, driverName, checkIns, isNew) {
+    if (!state.feedEntriesBySession[sessionId]) state.feedEntriesBySession[sessionId] = [];
+    checkIns.forEach(ci => {
+      const id = ci.checkInId || `${sessionId}-${ci.timestamp||''}-${ci.checkInNumber||''}`;
+      if (state.seenCheckIns.has(id)) return;
+      state.seenCheckIns.add(id);
+      const level = levelToUi(ci.level, ci.score);
+      state.feedEntriesBySession[sessionId].unshift({
+        id,
+        timestamp: ci.timestamp || new Date().toISOString(),
+        driverName,
+        reasoning: reasoningForCheckIn(ci, level),
+        indicators: Array.isArray(ci?.llmAnalysis?.fatigueIndicators) ? ci.llmAnalysis.fatigueIndicators : [],
+        level,
+        isNew
+      });
+    });
+    if (state.feedEntriesBySession[sessionId].length > 200) {
+      state.feedEntriesBySession[sessionId] = state.feedEntriesBySession[sessionId].slice(0, 200);
+    }
+    renderFeed();
+  }
+
+  function renderFeed() {
+    const el = document.getElementById('feedList');
+    const countEl = document.getElementById('feedCount');
+    if (!state.selectedSessionId) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">🤖</div><div class="empty-text">Select a driver to see AI analysis</div></div>';
+      countEl.textContent = '0 events';
+      return;
+    }
+    const entries = state.feedEntriesBySession[state.selectedSessionId] || [];
+    countEl.textContent = `${entries.length} event${entries.length !== 1 ? 's' : ''}`;
+    if (!entries.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">🤖</div><div class="empty-text">No AI analysis yet</div></div>';
+      return;
+    }
+    el.innerHTML = entries.map(e => {
+      const full = String(e.reasoning||'');
+      const short = trunc(full, 110);
+      const hasMore = full.length > 110;
+      const tags = e.indicators.length ? e.indicators.map(t=>`<span class="tag">${esc(t)}</span>`).join('') : '<span class="tag">No indicators</span>';
+      return `
+        <div class="feed-entry level-${e.level.toLowerCase()} ${e.isNew?'new-entry':''}">
+          <div class="feed-meta">
+            <div class="feed-driver">${esc(e.driverName)}</div>
+            <div class="feed-time">${formatLocalDateTime(e.timestamp)}</div>
+          </div>
+          <div class="feed-reasoning">${esc(short)}</div>
+          ${hasMore?`<details class="feed-readmore"><summary>Read more</summary><p>${esc(full)}</p></details>`:''}
+          <div class="tag-row">${tags}</div>
+        </div>
+      `;
+    }).join('');
+    entries.forEach(e => e.isNew = false);
+  }
+
+  // ── Main area ────────────────────────────────────────────────
+  function renderMain(sessionId, checkIns, meta, statusTimeline=[]) {
+    const el = document.getElementById('mainArea');
+    if (!sessionId || !checkIns) {
+      el.innerHTML = '<div class="empty" style="flex:1;"><div class="empty-icon">📊</div><div class="empty-text">Select a driver session to view analytics</div></div>';
+      return;
+    }
+    const safe = Array.isArray(checkIns)?checkIns:[];
+    const last = safe[safe.length-1]||{};
+    const level = levelToUi(last.level, last.score);
+    const startMs = meta.startedAt ? new Date(meta.startedAt).getTime() : null;
+    const totalHours = startMs ? ((Date.now()-startMs)/3600000).toFixed(1) : '--';
+    const docs = buildCreds(meta, sessionId);
+
+    el.innerHTML = `
+      <!-- Driver Hero -->
+      <div class="card">
+        <div class="driver-hero">
           <div>
-            <h1 class="driver-headline">${meta.driverName || 'Driver'}</h1>
-            <div class="driver-sub">${meta.truckId || 'TRUCK-UNKNOWN'} • Started ${formatLocalDateTime(meta.startedAt)}</div>
-            <div class="metrics">
-              <div class="metric">
+            <div class="driver-headline">${esc(meta.driverName||'Driver')}</div>
+            <div class="driver-sub">ID ${esc(docs.driverId)} · Started ${formatLocalDateTime(meta.startedAt)}</div>
+            <div class="metrics-row">
+              <div class="metric-tile">
                 <div class="metric-label">Hours Driven</div>
-                <div class="metric-value">${totalHours === '--' ? '--' : `${totalHours}h`}</div>
+                <div class="metric-value">${totalHours==='--'?'--':`${totalHours}h`}</div>
               </div>
-              <div class="metric">
-                <div class="metric-label">Check-ins Completed</div>
-                <div class="metric-value">${safeCheckIns.length}</div>
+              <div class="metric-tile">
+                <div class="metric-label">Check-ins</div>
+                <div class="metric-value">${safe.length}</div>
               </div>
-              <div class="metric">
+              <div class="metric-tile">
                 <div class="metric-label">Session ID</div>
-                <div class="metric-value">${sessionId}</div>
+                <div class="metric-value" style="font-size:12px">${sessionId}</div>
               </div>
             </div>
           </div>
-          <div class="alert-stack">
-            <div class="alert-large ${badgeClass(level)}">${level}</div>
-            <div class="driver-sub">Current alert level</div>
-          </div>
-        </section>
-
-        <section class="panel section">
-          <h2 class="section-title">Fatigue Score Trend</h2>
-          <div class="chart-wrap">
-            <canvas id="fatigueChart"></canvas>
-          </div>
-        </section>
-
-        <section class="panel section">
-          <h2 class="section-title">Check-in History</h2>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Time into shift</th>
-                  <th>Score</th>
-                  <th>Latency</th>
-                  <th>Transcript</th>
-                  <th>LLM Assessment</th>
-                  <th>Level</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${renderTableRows(safeCheckIns)}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section class="panel section">
-          <h2 class="section-title">Signal Breakdown (Last Check-in)</h2>
-          ${renderSignalBreakdown(last)}
-        </section>
-      `;
-
-      renderChart(safeCheckIns);
-    }
-
-    function renderSignalBreakdown(lastCheckIn) {
-      if (!lastCheckIn || !Object.keys(lastCheckIn).length) {
-        return '<div class="empty">No check-ins available yet.</div>';
-      }
-
-      const latency = Number(lastCheckIn.latencyMs || 0);
-      const words = wordCount(lastCheckIn.transcript);
-      const coherence = Number(lastCheckIn?.llmAnalysis?.coherenceScore ?? 0);
-
-      const latencyClass = latency > 4000 ? 'signal-high' : latency > 2500 ? 'signal-warning' : '';
-      const wordClass = words < 4 ? 'signal-warning' : '';
-      const coherenceClass = coherence < 4 ? 'signal-high' : coherence < 7 ? 'signal-warning' : '';
-
-      return `
-        <div class="breakdown">
-          <div class="signal-card">
-            <div class="signal-title">Response Latency</div>
-            <div class="signal-value ${latencyClass}">${Math.round(latency)}ms</div>
-          </div>
-          <div class="signal-card">
-            <div class="signal-title">Word Count</div>
-            <div class="signal-value ${wordClass}">${words}</div>
-          </div>
-          <div class="signal-card">
-            <div class="signal-title">LLM Coherence</div>
-            <div class="signal-value ${coherenceClass}">${coherence}/10</div>
+          <div>
+            <div class="alert-badge-large ${badgeClass(level)}">${level}</div>
+            <div class="alert-sub">Current Alert Level</div>
           </div>
         </div>
+      </div>
+
+      <!-- Credentials -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Driver Credentials</div>
+        </div>
+        <div class="card-body">
+          <div class="cred-grid">
+            <div class="cred-tile">
+              <div class="cred-label">License</div>
+              <div class="cred-value">${esc(docs.licenseNumber)}</div>
+              <div class="cred-expiry">Exp. ${esc(docs.licenseExpiry)}</div>
+            </div>
+            <div class="cred-tile">
+              <div class="cred-label">Warranty</div>
+              <div class="cred-value">${esc(docs.warrantyNumber)}</div>
+              <div class="cred-expiry">Exp. ${esc(docs.warrantyExpiry)}</div>
+            </div>
+            <div class="cred-tile">
+              <div class="cred-label">Registration</div>
+              <div class="cred-value">${esc(docs.registrationNumber)}</div>
+              <div class="cred-expiry">Exp. ${esc(docs.registrationExpiry)}</div>
+            </div>
+            <div class="cred-tile">
+              <div class="cred-label">Truck ID</div>
+              <div class="cred-value">${esc(meta.truckId||'TRUCK-UNKNOWN')}</div>
+              <div class="cred-expiry">Driver: ${esc(meta.driverName||'Driver')}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Delivery Timeline -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Delivery Status</div>
+        </div>
+        ${renderTimeline(statusTimeline)}
+      </div>
+
+      <!-- Fatigue Chart -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Fatigue Score Trend</div>
+        </div>
+        <div class="card-body">
+          <div class="chart-container">
+            <canvas id="fatigueChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Check-in Table -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Check-in History</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text-3)">${safe.length} records</div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Shift Time</th>
+                <th>Score</th>
+                <th>Latency</th>
+                <th>Transcript</th>
+                <th>LLM Assessment</th>
+                <th>Level</th>
+              </tr>
+            </thead>
+            <tbody>${renderTableRows(safe)}</tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    renderChart(safe);
+  }
+
+  function renderTimeline(statusTimeline) {
+    const items = Array.isArray(statusTimeline)?statusTimeline:[];
+    const sorted = [...items].sort((a,b)=>new Date(a.timestamp||0)-new Date(b.timestamp||0));
+    const latest = sorted[sorted.length-1]||{};
+    const rawIndex = STATUS_STEPS.findIndex(s=>s.key===latest.statusKey);
+    const currentIndex = rawIndex === -1 ? 0 : rawIndex;
+    const totalSteps = STATUS_STEPS.length;
+    const trackStartPercent = totalSteps > 0 ? (100 / (totalSteps * 2)) : 0;
+    const trackSpanPercent = 100 - (trackStartPercent * 2);
+    const nodePercent = totalSteps > 1
+      ? trackStartPercent + ((currentIndex / (totalSteps - 1)) * trackSpanPercent)
+      : trackStartPercent;
+    const fillPercent = Math.max(0, nodePercent - trackStartPercent);
+    const stepTimes = {};
+    sorted.forEach(e => { if(e.statusKey) stepTimes[e.statusKey]=e.timestamp; });
+
+    const stepsHtml = STATUS_STEPS.map((step, idx) => {
+      const cls = idx < currentIndex ? 'completed' : idx === currentIndex && items.length > 0 ? 'current' : '';
+      const timeStr = stepTimes[step.key] ? formatShortTime(stepTimes[step.key]) : 'Pending';
+      return `
+        <div class="timeline-step ${cls}">
+          <div class="timeline-node">
+            <div class="timeline-node-inner"></div>
+          </div>
+          <div class="timeline-label">${esc(step.label)}</div>
+          <div class="timeline-time">${esc(timeStr)}</div>
+        </div>
       `;
-    }
+    }).join('');
 
-    function renderTableRows(checkIns) {
-      if (!checkIns.length) {
-        return '<tr><td colspan="6" class="empty">No check-ins yet for this session.</td></tr>';
-      }
+    return `
+      <div class="timeline-wrap">
+        <div class="timeline-track" style="--step-count:${totalSteps}">
+          <div class="timeline-fill" style="width:${fillPercent}%"></div>
+          ${items.length > 0 ? `<div class="truck-icon" style="left:${nodePercent}%">🚛</div>` : ''}
+          ${stepsHtml}
+        </div>
+      </div>
+    `;
+  }
 
-      return [...checkIns]
-        .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
-        .map((checkIn) => {
-          const score = Number(checkIn.score || 0);
-          const level = levelToUi(checkIn.level, checkIn.score);
-          const latencySeconds = (Number(checkIn.latencyMs || 0) / 1000).toFixed(2);
-          const reasoning = reasoningForCheckIn(checkIn, level);
+  function renderTableRows(checkIns) {
+    if (!checkIns.length) return '<tr><td colspan="6" class="empty" style="padding:24px;text-align:center;color:var(--text-3)">No check-ins yet</td></tr>';
+    return [...checkIns].sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0)).map(ci => {
+      const score = Number(ci.score||0);
+      const level = levelToUi(ci.level, ci.score);
+      const latSec = (Number(ci.latencyMs||0)/1000).toFixed(2);
+      const reasoning = reasoningForCheckIn(ci, level);
+      return `
+        <tr class="row-${level.toLowerCase()}">
+          <td style="font-family:var(--mono);font-size:11px">${formatShiftTime(ci.hoursOnRoad)}</td>
+          <td class="score-mono ${scoreClass(score)}">${score}</td>
+          <td style="font-family:var(--mono);font-size:11px">${latSec}s</td>
+          <td title="${esc(ci.transcript||'')}">${esc(trunc(ci.transcript||'--',80))}</td>
+          <td title="${esc(reasoning)}">${esc(trunc(reasoning,80))}</td>
+          <td><span class="badge ${badgeClass(level)}">${level}</span></td>
+        </tr>
+      `;
+    }).join('');
+  }
 
-          return `
-            <tr class="row-${level.toLowerCase()}">
-              <td>${formatShiftTimeFromHours(checkIn.hoursOnRoad)}</td>
-              <td class="${scoreClass(score)}">${score}</td>
-              <td>${latencySeconds}s</td>
-              <td title="${String(checkIn.transcript || '').replace(/"/g, '&quot;')}">${truncate(checkIn.transcript || '--', 80)}</td>
-              <td title="${String(reasoning).replace(/"/g, '&quot;')}">${truncate(reasoning, 80)}</td>
-              <td><span class="badge ${badgeClass(level)}">${level}</span></td>
-            </tr>
-          `;
-        })
-        .join('');
-    }
-
-    function renderChart(checkIns) {
-      const canvas = document.getElementById('fatigueChart');
-      if (!canvas || typeof Chart === 'undefined') return;
-
-      const labels = checkIns.map((item, index) => {
-        const n = Number(item.checkInNumber);
-        return Number.isFinite(n) ? n + 1 : index + 1;
-      });
-
-      const values = checkIns.map((item) => Number(item.score || 0));
-
-      if (state.chart) {
-        state.chart.destroy();
-      }
-
-      state.chart = new Chart(canvas, {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [{
-            label: 'Fatigue Score',
-            data: values,
-            tension: 0.32,
-            borderWidth: 3,
-            pointRadius: 4,
-            pointHoverRadius: 5,
-            segment: {
-              borderColor: (ctx) => colorForScore(Math.max(ctx.p0.parsed.y, ctx.p1.parsed.y))
-            },
-            pointBackgroundColor: (ctx) => colorForScore(ctx.raw)
-          }]
-        },
-        options: {
-          maintainAspectRatio: false,
-          animation: {
-            duration: state.chartHasAnimated ? 350 : 1200,
-            easing: 'easeOutQuart'
+  function renderChart(checkIns) {
+    const canvas = document.getElementById('fatigueChart');
+    if (!canvas || typeof Chart === 'undefined') return;
+    const labels = checkIns.map((item, i) => { const n=Number(item.checkInNumber); return isFinite(n)?n+1:i+1; });
+    const values = checkIns.map(item => Number(item.score||0));
+    if (state.chart) state.chart.destroy();
+    Chart.defaults.color = '#9898a6';
+    Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+    state.chart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Fatigue Score',
+          data: values,
+          tension: 0.4,
+          borderWidth: 2.5,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: ctx => colorForScore(ctx.raw),
+          pointBorderColor: ctx => colorForScore(ctx.raw),
+          segment: {
+            borderColor: ctx => colorForScore(Math.max(ctx.p0.parsed.y, ctx.p1.parsed.y))
           },
-          plugins: {
-            legend: {
-              display: false
-            },
-            tooltip: {
-              callbacks: {
-                label: (context) => `Score: ${context.parsed.y}`
-              }
-            }
-          },
-          scales: {
-            x: {
-              title: {
-                display: true,
-                text: 'Check-in Number'
-              },
-              grid: {
-                color: '#eef2f7'
-              }
-            },
-            y: {
-              min: 0,
-              max: 10,
-              ticks: {
-                stepSize: 1
-              },
-              title: {
-                display: true,
-                text: 'Fatigue Score'
-              },
-              grid: {
-                color: '#eef2f7'
-              }
-            }
+          fill: {
+            target: 'origin',
+            above: 'rgba(59,130,246,0.04)'
+          }
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        animation: { duration: state.chartHasAnimated ? 300 : 1000, easing: 'easeOutQuart' },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#18181c',
+            borderColor: 'rgba(255,255,255,0.1)',
+            borderWidth: 1,
+            titleColor: '#9898a6',
+            bodyColor: '#f0f0f2',
+            callbacks: { label: ctx => `Score: ${ctx.parsed.y}` }
           }
         },
-        plugins: [criticalThresholdPlugin]
-      });
+        scales: {
+          x: {
+            grid: { color: 'rgba(255,255,255,0.04)' },
+            ticks: { font: { family: "'DM Mono', monospace", size: 10 } },
+            title: { display: true, text: 'Check-in', color: '#55555f', font: { size: 10 } }
+          },
+          y: {
+            min: 0, max: 10,
+            ticks: { stepSize: 2, font: { family: "'DM Mono', monospace", size: 10 } },
+            grid: { color: 'rgba(255,255,255,0.04)' },
+            title: { display: true, text: 'Fatigue Score', color: '#55555f', font: { size: 10 } }
+          }
+        }
+      },
+      plugins: [criticalThresholdPlugin]
+    });
+    state.chartHasAnimated = true;
+  }
 
-      state.chartHasAnimated = true;
+  // ── Data refresh ─────────────────────────────────────────────
+  async function selectSession(sessionId, fromPoll) {
+    state.selectedSessionId = sessionId;
+    renderFeed();
+    await refreshSelectedSession(fromPoll);
+    renderSidebar();
+  }
+
+  async function refreshSelectedSession(fromPoll) {
+    const sessionId = state.selectedSessionId;
+    if (!sessionId) { renderMain(null,null,null); return; }
+    try {
+      const [payload, timelinePayload] = await Promise.all([
+        getJson(`${SERVER}/api/sessions/${sessionId}`),
+        getJson(`${SERVER}/api/sessions/${sessionId}/status-timeline`).catch(()=>({timeline:[]}))
+      ]);
+      const normalized = normalizeSessionDetail(payload, sessionId);
+      state.sessions[sessionId] = normalized.checkIns;
+      state.statusTimelines[sessionId] = Array.isArray(timelinePayload?.timeline) ? timelinePayload.timeline : [];
+      const meta = { ...(state.sessionMeta[sessionId]||{}), ...(normalized.driver||{}), ...(state.sessionMetaOverrides[sessionId]||{}) };
+      state.sessionMeta[sessionId] = meta;
+      const oldLen = state.selectedLength;
+      const newLen = normalized.checkIns.length;
+      const driverName = getSessionMeta(sessionId, normalized.checkIns).driverName;
+      if (!fromPoll) addFeedEntries(sessionId, driverName, normalized.checkIns, false);
+      else if (newLen > oldLen) addFeedEntries(sessionId, driverName, normalized.checkIns.slice(oldLen), true);
+      state.selectedLength = newLen;
+      renderMain(sessionId, normalized.checkIns, getSessionMeta(sessionId, normalized.checkIns), state.statusTimelines[sessionId]||[]);
+    } catch(_) {
+      renderMain(null,null,null);
     }
+  }
 
-    async function selectSession(sessionId, fromPoll) {
-      state.selectedSessionId = sessionId;
-      await refreshSelectedSession(fromPoll);
-      renderSidebar();
-    }
-
-    async function refreshSelectedSession(fromPoll) {
-      const sessionId = state.selectedSessionId;
-      if (!sessionId) {
-        renderMain(null, null, null);
+  async function refreshSessions(fromPoll) {
+    try {
+      const payload = await getJson(`${SERVER}/api/sessions`);
+      const normalized = normalizeSessionsPayload(payload);
+      state.sessions = normalized.sessions;
+      state.sessionMeta = { ...state.sessionMeta, ...normalized.meta, ...state.sessionMetaOverrides };
+      const ids = Object.keys(state.sessions);
+      if (!ids.length) {
+        state.selectedSessionId = null;
+        state.selectedLength = 0;
+        renderSidebar();
+        renderMain(null,null,null);
+        renderFeed();
         return;
       }
-
-      try {
-        const payload = await getJson(`${SERVER}/api/sessions/${sessionId}`);
-        const normalized = normalizeSessionDetail(payload, sessionId);
-        state.sessions[sessionId] = normalized.checkIns;
-
-        const meta = {
-          ...(state.sessionMeta[sessionId] || {}),
-          ...(normalized.driver || {}),
-          ...(state.sessionMetaOverrides[sessionId] || {})
-        };
-
-        state.sessionMeta[sessionId] = meta;
-
-        const oldLength = state.selectedLength;
-        const newLength = normalized.checkIns.length;
-        const driverName = getSessionMeta(sessionId, normalized.checkIns).driverName;
-
-        if (!fromPoll) {
-          addFeedEntries(sessionId, driverName, normalized.checkIns, false);
-        } else if (newLength > oldLength) {
-          addFeedEntries(sessionId, driverName, normalized.checkIns.slice(oldLength), true);
-        }
-
-        state.selectedLength = newLength;
-        renderMain(sessionId, normalized.checkIns, getSessionMeta(sessionId, normalized.checkIns));
-      } catch (_error) {
-        renderMain(null, null, null);
+      if (!state.selectedSessionId || !state.sessions[state.selectedSessionId]) {
+        state.selectedSessionId = ids[0];
+        state.selectedLength = 0;
+        await refreshSelectedSession(false);
+      } else {
+        await refreshSelectedSession(fromPoll);
       }
+      renderSidebar();
+    } catch(_) {
+      document.getElementById('sessionList').innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">Server unavailable</div></div>';
     }
+  }
 
-    async function refreshSessions(fromPoll) {
-      try {
-        const payload = await getJson(`${SERVER}/api/sessions`);
-        const normalized = normalizeSessionsPayload(payload);
+  // ── Simulation ───────────────────────────────────────────────
+  function startSimulatedStatusProgress(sessionId) {
+    if (state.simulationStatusTimers[sessionId]) clearInterval(state.simulationStatusTimers[sessionId]);
+    const statuses = ['loaded_to_truck','out_for_delivery','delivered_safe_drop','delivered_access_point'];
+    let index = 0;
+    const push = async () => {
+      if (index >= statuses.length) { clearInterval(state.simulationStatusTimers[sessionId]); delete state.simulationStatusTimers[sessionId]; return; }
+      await fetch(`${SERVER}/api/status-update`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId,status:statuses[index],note:`Auto step ${index+1}`})});
+      index++;
+      await refreshSessions(true);
+    };
+    push();
+    state.simulationStatusTimers[sessionId] = setInterval(push, 15000);
+  }
 
-        state.sessions = normalized.sessions;
-        state.sessionMeta = {
-          ...state.sessionMeta,
-          ...normalized.meta,
-          ...state.sessionMetaOverrides
-        };
-
-        const sessionIds = Object.keys(state.sessions);
-
-        if (!sessionIds.length) {
-          state.selectedSessionId = null;
-          state.selectedLength = 0;
-          renderSidebar();
-          renderMain(null, null, null);
-          return;
-        }
-
-        if (!state.selectedSessionId || !state.sessions[state.selectedSessionId]) {
-          state.selectedSessionId = sessionIds[0];
-          state.selectedLength = 0;
-          await refreshSelectedSession(false);
-        } else {
-          await refreshSelectedSession(fromPoll);
-        }
-
-        renderSidebar();
-      } catch (_error) {
-        sessionListEl.innerHTML = '<div class="empty">Server unavailable.</div>';
+  async function simulateDriver() {
+    const btn = document.getElementById('simulateBtn');
+    btn.disabled = true;
+    try {
+      const startRes = await fetch(`${SERVER}/api/sessions/start`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({driverName:'Demo Driver',truckId:'TRUCK-01'})});
+      if (!startRes.ok) throw new Error('Failed');
+      const { sessionId } = await startRes.json();
+      state.sessionMetaOverrides[sessionId] = {
+        driverName: 'Demo Driver', truckId: 'TRUCK-01',
+        startedAt: new Date(Date.now()-5*3600000).toISOString()
+      };
+      const demos = [
+        {transcript:'Feeling focused. Traffic smooth, staying alert.',latencyMs:950,hoursOnRoad:2.2},
+        {transcript:'Doing okay, a little drained but manageable.',latencyMs:2100,hoursOnRoad:3.8},
+        {transcript:'Kinda tired honestly, eyes are heavy.',latencyMs:3300,hoursOnRoad:5.6},
+        {transcript:'',latencyMs:5600,hoursOnRoad:7.4}
+      ];
+      for (let i=0;i<demos.length;i++) {
+        if (i>0) await new Promise(r=>setTimeout(r,2500));
+        await fetch(`${SERVER}/api/checkin`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...demos[i],checkInNumber:i,sessionId})});
+        await refreshSessions(true);
       }
-    }
+      startSimulatedStatusProgress(sessionId);
+      await selectSession(sessionId, false);
+    } catch(_) {}
+    finally { btn.disabled = false; }
+  }
 
-    async function simulateDriver() {
-      simulateBtn.disabled = true;
+  // ── Init ─────────────────────────────────────────────────────
+  document.getElementById('simulateBtn').addEventListener('click', simulateDriver);
+  document.getElementById('exportPdfBtn').addEventListener('click', () => {
+    console.log('[Coming Soon] Export PDF for session', state.selectedSessionId||'none');
+  });
 
-      try {
-        const startRes = await fetch(`${SERVER}/api/sessions/start`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            driverName: 'Demo Driver',
-            truckId: 'TRUCK-01'
-          })
-        });
+  setInterval(()=>{ document.getElementById('liveClock').textContent = formatClock(); }, 1000);
+  document.getElementById('liveClock').textContent = formatClock();
 
-        if (!startRes.ok) {
-          throw new Error('Failed to create demo session');
-        }
-
-        const startData = await startRes.json();
-        const sessionId = startData.sessionId;
-
-        state.sessionMetaOverrides[sessionId] = {
-          driverName: 'Demo Driver',
-          truckId: 'TRUCK-01',
-          startedAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString()
-        };
-
-        const demoCheckIns = [
-          {
-            transcript: 'Feeling focused. Traffic is smooth and I am staying alert.',
-            latencyMs: 950,
-            hoursOnRoad: 2.2
-          },
-          {
-            transcript: 'Doing okay, a little drained but manageable.',
-            latencyMs: 2100,
-            hoursOnRoad: 3.8
-          },
-          {
-            transcript: 'Kinda tired honestly, eyes are heavy and concentration is harder.',
-            latencyMs: 3300,
-            hoursOnRoad: 5.6
-          },
-          {
-            transcript: '',
-            latencyMs: 5600,
-            hoursOnRoad: 7.4
-          }
-        ];
-
-        for (let i = 0; i < demoCheckIns.length; i += 1) {
-          if (i > 0) {
-            await new Promise((resolve) => setTimeout(resolve, 2500));
-          }
-
-          await fetch(`${SERVER}/api/checkin`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              ...demoCheckIns[i],
-              checkInNumber: i,
-              sessionId
-            })
-          });
-
-          await refreshSessions(true);
-        }
-
-        await selectSession(sessionId, false);
-      } catch (_error) {
-        // no-op
-      } finally {
-        simulateBtn.disabled = false;
-      }
-    }
-
-    function startClock() {
-      liveClockEl.textContent = formatClock();
-      setInterval(() => {
-        liveClockEl.textContent = formatClock();
-      }, 1000);
-    }
-
-    simulateBtn.addEventListener('click', simulateDriver);
-    exportPdfBtn.addEventListener('click', () => {
-      const sessionId = state.selectedSessionId || 'none';
-      console.log(`[Coming Soon] Export Session PDF requested for session ${sessionId}`);
-    });
-
-    startClock();
-    renderMain(null, null, null);
-    renderFeed();
-
-    refreshSessions(false);
-    setInterval(() => {
-      refreshSessions(true);
-    }, 5000);
-  </script>
+  renderFeed();
+  refreshSessions(false);
+  setInterval(()=>refreshSessions(true), 5000);
+</script>
 </body>
 </html>

@@ -636,6 +636,13 @@
       'truck'
     ];
 
+    const DELIVERY_STATUS_MAP = {
+      loaded_to_truck: 'Loaded onto truck',
+      out_for_delivery: 'Out for delivery',
+      delivered_safe_drop: 'Delivered to safe drop',
+      delivered_access_point: 'Delivered to access point'
+    };
+
     function normalizeSpeechText(value) {
       return String(value || '')
         .toLowerCase()
@@ -657,6 +664,62 @@
       const hasTriggerWord = /\bok\b|\bokay\b|\bhey\b/.test(normalized);
 
       return hasTruck && hasGuardLike && hasTriggerWord;
+    }
+
+    function parseDeliveryStatus(transcript) {
+      const normalized = normalizeSpeechText(transcript);
+      if (!normalized) return null;
+
+      if (normalized.includes('loaded')) return 'loaded_to_truck';
+      if (normalized.includes('out for delivery') || normalized.includes('out delivery')) return 'out_for_delivery';
+      if (normalized.includes('safe drop')) return 'delivered_safe_drop';
+      if (normalized.includes('access point')) return 'delivered_access_point';
+      if (normalized.includes('delivered') && normalized.includes('safe')) return 'delivered_safe_drop';
+      if (normalized.includes('delivered') && normalized.includes('access')) return 'delivered_access_point';
+
+      return null;
+    }
+
+    async function handleStatusUpdateCommand(initialTranscript) {
+      if (!sessionState.sessionId) {
+        await speak('Start a shift first, then I can record status updates.');
+        return;
+      }
+
+      let transcript = initialTranscript;
+      let statusKey = parseDeliveryStatus(transcript);
+
+      if (!statusKey) {
+        assistantLabel.textContent = 'Status?';
+        await speak('Say one of these: loaded onto truck, out for delivery, delivered to safe drop, or delivered to access point.');
+        const followUp = await listenForResponse();
+        transcript = followUp.transcript || '';
+        statusKey = parseDeliveryStatus(transcript);
+      }
+
+      if (!statusKey) {
+        await speak('I could not identify that status update. Please try again.');
+        return;
+      }
+
+      assistantLabel.textContent = 'Updating...';
+
+      const response = await fetch(`${SERVER}/api/status-update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: sessionState.sessionId,
+          status: statusKey,
+          note: transcript
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Status update failed');
+      }
+
+      const label = DELIVERY_STATUS_MAP[statusKey] || 'Status updated';
+      await speak(`Status updated. ${label}.`);
     }
 
     function renderHistory() {
@@ -991,6 +1054,22 @@
       }
 
       assistantQuestion.textContent = `"${transcript}"`;
+
+      const normalizedRequest = normalizeSpeechText(transcript);
+      const isStatusUpdateRequest = normalizedRequest.includes('status update')
+        || normalizedRequest.startsWith('status')
+        || normalizedRequest.includes('update status');
+
+      if (isStatusUpdateRequest) {
+        try {
+          await handleStatusUpdateCommand(transcript);
+        } catch (_error) {
+          await speak('Sorry, I could not save that status update right now.');
+        }
+        closeAssistant();
+        return;
+      }
+
       assistantLabel.textContent = 'Thinking...';
 
       try {

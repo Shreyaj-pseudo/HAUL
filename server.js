@@ -28,6 +28,34 @@ app.use((req, res, next) => {
 const sessions = {};
 const sessionMeta = {};
 
+const STATUS_DEFINITIONS = {
+  loaded_to_truck: 'Loaded onto truck',
+  out_for_delivery: 'Out for delivery',
+  delivered_safe_drop: 'Delivered to safe drop',
+  delivered_access_point: 'Delivered to access point'
+};
+
+function normalizeStatusKey(rawStatus) {
+  const normalized = String(rawStatus || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s_]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!normalized) return null;
+
+  if (STATUS_DEFINITIONS[normalized]) return normalized;
+
+  if (normalized.includes('loaded')) return 'loaded_to_truck';
+  if (normalized.includes('out for delivery') || normalized.includes('out delivery')) return 'out_for_delivery';
+  if (normalized.includes('safe drop')) return 'delivered_safe_drop';
+  if (normalized.includes('access point')) return 'delivered_access_point';
+  if (normalized.includes('delivered') && normalized.includes('safe')) return 'delivered_safe_drop';
+  if (normalized.includes('delivered') && normalized.includes('access')) return 'delivered_access_point';
+
+  return null;
+}
+
 const tiredWords = ['tired', 'sleepy', 'exhausted', 'drowsy', 'zoning', 'heavy', 'struggling', 'drifting'];
 
 function getWordCount(transcript) {
@@ -327,7 +355,7 @@ app.post('/api/assistant', async (req, res) => {
           {
             role: 'system',
             content: `You are TruckGuard, a voice assistant for long-haul truck drivers.
-            Keep ALL answers under 3 sentences - this is spoken aloud while someone is driving.
+            Keep ALL answers under 2 sentences - this is spoken aloud while someone is driving.
             Be direct and practical. They are in They are in ontario on the 401 highway. give them the answer to their question in a concise way max 20 words. If you don't know the answer, Make something up that sounds plausible and helpful.`
           },
           {
@@ -351,8 +379,76 @@ app.post('/api/assistant', async (req, res) => {
   }
 });
 
+app.post('/api/status-update', (req, res) => {
+  try {
+    const { sessionId, status, note = '' } = req.body || {};
+
+    if (!sessionId) {
+      return res.status(400).json({ error: 'sessionId is required.' });
+    }
+
+    if (!sessions[sessionId]) {
+      return res.status(404).json({ error: 'Session not found.' });
+    }
+
+    const statusKey = normalizeStatusKey(status);
+    if (!statusKey) {
+      return res.status(400).json({
+        error: 'Invalid status. Use loaded_to_truck, out_for_delivery, delivered_safe_drop, or delivered_access_point.'
+      });
+    }
+
+    if (!sessionMeta[sessionId]) {
+      sessionMeta[sessionId] = {
+        driverName: '',
+        truckId: '',
+        startedAt: new Date().toISOString()
+      };
+    }
+
+    if (!Array.isArray(sessionMeta[sessionId].statusTimeline)) {
+      sessionMeta[sessionId].statusTimeline = [];
+    }
+
+    const entry = {
+      statusId: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      sessionId,
+      statusKey,
+      statusLabel: STATUS_DEFINITIONS[statusKey],
+      note: String(note || '').trim(),
+      timestamp: new Date().toISOString()
+    };
+
+    sessionMeta[sessionId].statusTimeline.push(entry);
+
+    return res.json({
+      ok: true,
+      entry,
+      timeline: sessionMeta[sessionId].statusTimeline
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'Failed to save status update.' });
+  }
+});
+
+app.get('/api/sessions/:sessionId/status-timeline', (req, res) => {
+  const { sessionId } = req.params;
+  if (!sessions[sessionId]) {
+    return res.status(404).json({ error: 'Session not found.' });
+  }
+
+  const timeline = sessionMeta[sessionId]?.statusTimeline || [];
+  return res.json({
+    sessionId,
+    timeline
+  });
+});
+
 app.get('/api/sessions', (_req, res) => {
-  res.json(sessions);
+  res.json({
+    sessions,
+    sessionMeta
+  });
 });
 
 app.get('/api/health', (_req, res) => {
@@ -369,7 +465,10 @@ app.get('/api/sessions/:sessionId', (req, res) => {
     return res.status(404).json({ error: 'Session not found.' });
   }
 
-  return res.json(sessions[sessionId]);
+  return res.json({
+    checkIns: sessions[sessionId],
+    driver: sessionMeta[sessionId] || {}
+  });
 });
 
 app.get('/api/sessions/:sessionId/summary', (req, res) => {
@@ -435,7 +534,8 @@ app.post('/api/sessions/start', (req, res) => {
   sessionMeta[sessionId] = {
     driverName,
     truckId,
-    startedAt: new Date().toISOString()
+    startedAt: new Date().toISOString(),
+    statusTimeline: []
   };
 
   return res.json({ sessionId });
