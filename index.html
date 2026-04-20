@@ -1238,11 +1238,11 @@
 
       sessionState.checkInInterval = setInterval(() => {
         runCheckIn();
-      }, 7200000);
+      }, 3600000);
 
       checkInBtn.disabled = false;
 
-      await speak("Shift started. I'll check in with you every two hours. Stay safe out there.");
+      await speak("Shift started. I'll check in with you every hour. Stay safe out there.");
     }
 
     async function pingServer() {
