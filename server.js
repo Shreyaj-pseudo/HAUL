@@ -218,10 +218,7 @@ app.post('/api/speak', async (req, res) => {
 });
 
 app.get('/api/sessions', (_req, res) => {
-  res.json({
-    sessions,
-    sessionMeta
-  });
+  res.json(sessions);
 });
 
 app.get('/api/sessions/:sessionId', (req, res) => {
@@ -230,11 +227,7 @@ app.get('/api/sessions/:sessionId', (req, res) => {
     return res.status(404).json({ error: 'Session not found.' });
   }
 
-  return res.json({
-    sessionId,
-    driver: sessionMeta[sessionId] || null,
-    checkIns: sessions[sessionId]
-  });
+  return res.json(sessions[sessionId]);
 });
 
 app.post('/api/sessions/start', (req, res) => {

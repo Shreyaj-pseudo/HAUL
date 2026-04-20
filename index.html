@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>TruckGuard</title>
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --fg: #f5f5f5;
+      --muted: #b5b5b5;
+      --good: #22c55e;
+      --caution: #eab308;
+      --warning: #f97316;
+      --critical: #ef4444;
+      --button-bg: #171717;
+      --button-border: #2b2b2b;
+      --disconnected: #6b7280;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at top, #111111 0%, var(--bg) 58%);
+      color: var(--fg);
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+    }
+
+    .app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding-top: max(14px, env(safe-area-inset-top));
+      padding-bottom: max(14px, env(safe-area-inset-bottom));
+    }
+
+    .topbar {
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      font-size: 0.92rem;
+      position: relative;
+    }
+
+    .logo-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      user-select: none;
+      cursor: pointer;
+    }
+
+    .logo {
+      font-weight: 700;
+      color: #f3f3f3;
+    }
+
+    .demo-badge {
+      display: none;
+      font-size: 0.64rem;
+      padding: 2px 7px;
+      border: 1px solid #3b3b3b;
+      border-radius: 999px;
+      color: #fbbf24;
+      letter-spacing: 0.12em;
+    }
+
+    .demo-badge.active {
+      display: inline-block;
+    }
+
+    .connection-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+    }
+
+    .connection-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--disconnected);
+      box-shadow: 0 0 8px rgba(107, 114, 128, 0.65);
+      transition: all 180ms ease;
+    }
+
+    .connection-dot.connected {
+      background: var(--good);
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.85);
+    }
+
+    .center {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      padding: 18px;
+      gap: 20px;
+      text-align: center;
+    }
+
+    .status-circle {
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      background: var(--good);
+      box-shadow: 0 0 22px rgba(34, 197, 94, 0.65), 0 0 92px rgba(34, 197, 94, 0.3);
+      transition: background-color 220ms linear, box-shadow 220ms linear;
+    }
+
+    .status-circle.pulse-warning {
+      animation: pulse-warning 1.6s infinite;
+    }
+
+    .status-circle.pulse-critical {
+      animation: pulse-critical 0.85s infinite;
+    }
+
+    .alert-label {
+      font-size: 0.9rem;
+      color: #e6e6e6;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .bottombar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding: 0 14px;
+      margin-bottom: 10px;
+    }
+
+    button {
+      border: 1px solid var(--button-border);
+      border-radius: 14px;
+      height: 80px;
+      width: 100%;
+      color: #fafafa;
+      background: var(--button-bg);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    button:active {
+      transform: scale(0.985);
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .speaking-indicator {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent 0%, transparent 100%);
+      overflow: hidden;
+    }
+
+    .speaking-indicator::before {
+      content: "";
+      position: absolute;
+      left: -40%;
+      width: 35%;
+      height: 100%;
+      background: linear-gradient(90deg, rgba(34, 197, 94, 0), rgba(34, 197, 94, 0.95), rgba(34, 197, 94, 0));
+      opacity: 0;
+    }
+
+    body.speaking .speaking-indicator::before {
+      opacity: 1;
+      animation: speaking-bar 1s linear infinite;
+    }
+
+    .edge-flash {
+      pointer-events: none;
+      position: absolute;
+      inset: 0;
+      box-shadow: inset 0 0 0 0 rgba(239, 68, 68, 0);
+      opacity: 0;
+    }
+
+    .edge-flash.active {
+      opacity: 1;
+      animation: edge-critical 0.45s infinite alternate;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(5, 5, 5, 0.92);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 30;
+      padding: 18px;
+    }
+
+    .overlay.hidden {
+      display: none;
+    }
+
+    .overlay-card {
+      width: 100%;
+      max-width: 420px;
+      border: 1px solid #2a2a2a;
+      background: #111111;
+      border-radius: 14px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .overlay-card h2 {
+      margin: 0;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .overlay-card input {
+      height: 56px;
+      border-radius: 10px;
+      border: 1px solid #343434;
+      background: #0f0f0f;
+      color: #f3f3f3;
+      padding: 0 14px;
+      font-size: 1rem;
+    }
+
+    .overlay-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .overlay-actions button {
+      height: 62px;
+      font-size: 0.95rem;
+    }
+
+    @keyframes pulse-warning {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.04); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes pulse-critical {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.06); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes edge-critical {
+      from { box-shadow: inset 0 0 0 0 rgba(239, 68, 68, 0.1); }
+      to { box-shadow: inset 0 0 0 12px rgba(239, 68, 68, 0.45); }
+    }
+
+    @keyframes speaking-bar {
+      0% { left: -40%; }
+      100% { left: 110%; }
+    }
+
+    @media (max-width: 420px) {
+      .status-circle {
+        width: 260px;
+        height: 260px;
+      }
+
+      .bottombar {
+        gap: 8px;
+      }
+
+      button {
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div id="logoTap" class="logo-wrap" aria-label="TruckGuard logo">
+        <div class="logo">TruckGuard</div>
+        <div id="demoBadge" class="demo-badge">Demo</div>
+      </div>
+      <div class="connection-wrap">
+        <span>Server</span>
+        <span id="connectionDot" class="connection-dot" aria-label="Server connection indicator"></span>
+      </div>
+    </div>
+
+    <main class="center">
+      <div id="statusCircle" class="status-circle" aria-hidden="true"></div>
+      <div id="alertLabel" class="alert-label">All Clear</div>
+    </main>
+
+    <div class="bottombar">
+      <button id="startShiftBtn" type="button">Start Shift</button>
+      <button id="checkInBtn" type="button" disabled>Check In</button>
+    </div>
+
+    <div class="speaking-indicator" aria-hidden="true"></div>
+    <div id="edgeFlash" class="edge-flash" aria-hidden="true"></div>
+
+    <div id="startOverlay" class="overlay hidden" role="dialog" aria-modal="true" aria-label="Start shift">
+      <div class="overlay-card">
+        <h2>Start Shift</h2>
+        <input id="driverNameInput" type="text" placeholder="Driver name" maxlength="40" />
+        <input id="truckIdInput" type="text" placeholder="Truck ID" maxlength="40" />
+        <div class="overlay-actions">
+          <button id="cancelStartBtn" type="button">Cancel</button>
+          <button id="confirmStartBtn" type="button">Start</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SERVER = 'http://localhost:3000';
+    const VOICE_ID = '21m00Tcm4TlvDq8ikWAM';
+
+    let sessionState = {
+      sessionId: null,
+      driverName: 'Driver',
+      startTime: null,
+      checkInCount: 0,
+      currentLevel: 'NORMAL',
+      checkInInterval: null,
+      demoMode: false,
+      demoScenarioIndex: 0
+    };
+
+    const demoScenarios = [
+      { transcript: 'Yeah feeling good, just had some coffee', latencyMs: 900 },
+      { transcript: 'fine', latencyMs: 2400 },
+      { transcript: 'kinda tired honestly been a long one', latencyMs: 3100 },
+      { transcript: '', latencyMs: 5500 }
+    ];
+
+    const statusCircle = document.getElementById('statusCircle');
+    const alertLabel = document.getElementById('alertLabel');
+    const checkInBtn = document.getElementById('checkInBtn');
+    const startShiftBtn = document.getElementById('startShiftBtn');
+    const connectionDot = document.getElementById('connectionDot');
+    const edgeFlash = document.getElementById('edgeFlash');
+    const startOverlay = document.getElementById('startOverlay');
+    const driverNameInput = document.getElementById('driverNameInput');
+    const truckIdInput = document.getElementById('truckIdInput');
+    const confirmStartBtn = document.getElementById('confirmStartBtn');
+    const cancelStartBtn = document.getElementById('cancelStartBtn');
+    const logoTap = document.getElementById('logoTap');
+    const demoBadge = document.getElementById('demoBadge');
+
+    function normalizeServerLevel(level, score) {
+      const clean = (level || '').toString().trim().toUpperCase();
+      if (clean === 'NORMAL' || clean === 'CAUTION' || clean === 'WARNING' || clean === 'CRITICAL') {
+        return clean;
+      }
+      if (clean === 'LOW') return 'NORMAL';
+      if (clean === 'MEDIUM') return 'CAUTION';
+      if (clean === 'HIGH') return Number(score) >= 9 ? 'CRITICAL' : 'WARNING';
+
+      const numeric = Number(score);
+      if (!Number.isNaN(numeric)) {
+        if (numeric >= 9) return 'CRITICAL';
+        if (numeric >= 7) return 'WARNING';
+        if (numeric >= 4) return 'CAUTION';
+      }
+      return 'NORMAL';
+    }
+
+    async function speak(text) {
+      if (!text) return;
+
+      document.body.classList.add('speaking');
+
+      try {
+        const response = await fetch(`${SERVER}/api/speak`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, voiceId: VOICE_ID })
+        });
+
+        if (!response.ok) {
+          throw new Error('Speak request failed');
+        }
+
+        const audioBlob = await response.blob();
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+
+        await new Promise((resolve) => {
+          const finish = () => {
+            URL.revokeObjectURL(audioUrl);
+            resolve();
+          };
+          audio.onended = finish;
+          audio.onerror = finish;
+          audio.play().catch(finish);
+        });
+      } catch (_error) {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      } finally {
+        document.body.classList.remove('speaking');
+      }
+    }
+
+    async function listenForResponse() {
+      if (sessionState.demoMode) {
+        const item = demoScenarios[sessionState.demoScenarioIndex % demoScenarios.length];
+        sessionState.demoScenarioIndex += 1;
+        await new Promise((resolve) => setTimeout(resolve, 350));
+        return item;
+      }
+
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        return { transcript: '', latencyMs: 8000 };
+      }
+
+      return new Promise((resolve) => {
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        let listenStartTime = Date.now();
+        let latencyMs = 8000;
+        let settled = false;
+
+        const settle = (payload) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeoutId);
+          try {
+            recognition.stop();
+          } catch (_error) {
+            // no-op
+          }
+          resolve(payload);
+        };
+
+        recognition.onstart = () => {
+          listenStartTime = Date.now();
+        };
+
+        recognition.onspeechstart = () => {
+          latencyMs = Date.now() - listenStartTime;
+        };
+
+        recognition.onresult = (event) => {
+          const transcript = event.results?.[0]?.[0]?.transcript?.trim() || '';
+          settle({ transcript, latencyMs });
+        };
+
+        recognition.onerror = () => {
+          settle({ transcript: '', latencyMs });
+        };
+
+        recognition.onnomatch = () => {
+          settle({ transcript: '', latencyMs });
+        };
+
+        const timeoutId = setTimeout(() => {
+          settle({ transcript: '', latencyMs: 8000 });
+        }, 8000);
+
+        recognition.start();
+      });
+    }
+
+    function updateAlertLevel(level) {
+      sessionState.currentLevel = level;
+
+      statusCircle.classList.remove('pulse-warning', 'pulse-critical');
+      edgeFlash.classList.remove('active');
+
+      if (level === 'NORMAL') {
+        statusCircle.style.backgroundColor = '#22c55e';
+        statusCircle.style.boxShadow = '0 0 22px rgba(34, 197, 94, 0.65), 0 0 92px rgba(34, 197, 94, 0.3)';
+        alertLabel.textContent = 'ALL CLEAR';
+        return;
+      }
+
+      if (level === 'CAUTION') {
+        statusCircle.style.backgroundColor = '#eab308';
+        statusCircle.style.boxShadow = '0 0 22px rgba(234, 179, 8, 0.65), 0 0 92px rgba(234, 179, 8, 0.3)';
+        alertLabel.textContent = 'CAUTION';
+        return;
+      }
+
+      if (level === 'WARNING') {
+        statusCircle.style.backgroundColor = '#f97316';
+        statusCircle.style.boxShadow = '0 0 24px rgba(249, 115, 22, 0.75), 0 0 102px rgba(249, 115, 22, 0.35)';
+        statusCircle.classList.add('pulse-warning');
+        alertLabel.textContent = 'WARNING';
+        return;
+      }
+
+      statusCircle.style.backgroundColor = '#ef4444';
+      statusCircle.style.boxShadow = '0 0 26px rgba(239, 68, 68, 0.85), 0 0 110px rgba(239, 68, 68, 0.4)';
+      statusCircle.classList.add('pulse-critical');
+      edgeFlash.classList.add('active');
+      alertLabel.textContent = 'CRITICAL';
+    }
+
+    async function speakIntervention(level, llmAnalysis) {
+      if (level === 'NORMAL') {
+        await speak('All good. Keep it up out there.');
+        return;
+      }
+
+      if (level === 'CAUTION') {
+        await speak("You're doing alright, but it might be worth taking a short break at the next stop.");
+        return;
+      }
+
+      if (level === 'WARNING') {
+        await speak('I am detecting some fatigue signals. I strongly recommend pulling over at the next rest area. Your safety comes first.');
+        return;
+      }
+
+      await speak('I am seriously concerned about your alertness. Please pull over safely as soon as possible. Do not push through this.');
+    }
+
+    async function runCheckIn() {
+      if (!sessionState.sessionId) return;
+
+      const question = 'Quick check - how are you holding up out there?';
+
+      try {
+        await speak(question);
+        const { transcript, latencyMs } = await listenForResponse(question);
+        const hoursOnRoad = (Date.now() - sessionState.startTime) / 3600000;
+
+        const response = await fetch(`${SERVER}/api/checkin`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            transcript,
+            latencyMs,
+            hoursOnRoad,
+            checkInNumber: sessionState.checkInCount++,
+            sessionId: sessionState.sessionId
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Check-in request failed');
+        }
+
+        const { score, level, llmAnalysis } = await response.json();
+        const normalizedLevel = normalizeServerLevel(level, score);
+
+        updateAlertLevel(normalizedLevel);
+        await speakIntervention(normalizedLevel, llmAnalysis);
+      } catch (_error) {
+        await speak('Unable to complete check in right now. Please try again shortly.');
+      }
+    }
+
+    async function startShift(driverName, truckId) {
+      const response = await fetch(`${SERVER}/api/sessions/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ driverName, truckId })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to start session');
+      }
+
+      const data = await response.json();
+      sessionState.sessionId = data.sessionId;
+      sessionState.driverName = driverName || 'Driver';
+      sessionState.startTime = sessionState.demoMode
+        ? Date.now() - 5 * 60 * 60 * 1000
+        : Date.now();
+      sessionState.checkInCount = 0;
+
+      if (sessionState.checkInInterval) {
+        clearInterval(sessionState.checkInInterval);
+      }
+
+      sessionState.checkInInterval = setInterval(() => {
+        runCheckIn();
+      }, 7200000);
+
+      checkInBtn.disabled = false;
+
+      await speak("Shift started. I'll check in with you every two hours. Stay safe out there.");
+    }
+
+    async function pingServer() {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 3000);
+
+        const response = await fetch(`${SERVER}/api/sessions`, {
+          method: 'GET',
+          signal: controller.signal
+        });
+
+        clearTimeout(timer);
+
+        if (!response.ok) {
+          throw new Error('Ping failed');
+        }
+
+        connectionDot.classList.add('connected');
+      } catch (_error) {
+        connectionDot.classList.remove('connected');
+      }
+    }
+
+    function openStartOverlay() {
+      startOverlay.classList.remove('hidden');
+      driverNameInput.focus();
+    }
+
+    function closeStartOverlay() {
+      startOverlay.classList.add('hidden');
+    }
+
+    let tapTimes = [];
+    function handleLogoTap() {
+      const now = Date.now();
+      tapTimes.push(now);
+      tapTimes = tapTimes.filter((time) => now - time < 900);
+      if (tapTimes.length >= 3) {
+        tapTimes = [];
+        sessionState.demoMode = true;
+        sessionState.startTime = Date.now() - 5 * 60 * 60 * 1000;
+        demoBadge.classList.add('active');
+      }
+    }
+
+    startShiftBtn.addEventListener('click', openStartOverlay);
+
+    cancelStartBtn.addEventListener('click', closeStartOverlay);
+
+    confirmStartBtn.addEventListener('click', async () => {
+      const driverName = driverNameInput.value.trim() || 'Driver';
+      const truckId = truckIdInput.value.trim() || 'Unknown';
+
+      confirmStartBtn.disabled = true;
+      try {
+        await startShift(driverName, truckId);
+        closeStartOverlay();
+      } catch (_error) {
+        await speak('Unable to start shift right now. Check server connection and try again.');
+      } finally {
+        confirmStartBtn.disabled = false;
+      }
+    });
+
+    checkInBtn.addEventListener('click', () => {
+      runCheckIn();
+    });
+
+    logoTap.addEventListener('click', handleLogoTap);
+
+    updateAlertLevel('NORMAL');
+    pingServer();
+    setInterval(pingServer, 5000);
+  </script>
+</body>
+</html>
