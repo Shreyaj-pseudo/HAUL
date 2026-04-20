@@ -397,6 +397,89 @@
       50% { transform: scaleY(1.8); }
     }
 
+    .assistant-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(5, 5, 5, 0.92);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 20px;
+      z-index: 20;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .assistant-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .assistant-ring {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: 2px solid #3b82f6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      box-shadow: 0 0 40px rgba(59, 130, 246, 0.5);
+      animation: assistant-pulse 1.5s ease-in-out infinite;
+    }
+
+    .assistant-label {
+      font-size: 0.9rem;
+      color: #93c5fd;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    .assistant-question {
+      font-size: 0.85rem;
+      color: #d1d5db;
+      max-width: 280px;
+      text-align: center;
+      min-height: 40px;
+      font-style: italic;
+    }
+
+    .wake-indicator {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.65rem;
+      color: #4b5563;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 9;
+    }
+
+    .wake-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #4b5563;
+    }
+
+    .wake-dot.listening {
+      background: #3b82f6;
+      box-shadow: 0 0 6px #3b82f6;
+      animation: assistant-pulse 1s ease-in-out infinite;
+    }
+
+    @keyframes assistant-pulse {
+      0%,
+      100% { box-shadow: 0 0 40px rgba(59, 130, 246, 0.5); }
+      50% { box-shadow: 0 0 70px rgba(59, 130, 246, 0.9); }
+    }
+
     @media (max-width: 420px) {
       .status-circle {
         width: 260px;
@@ -467,6 +550,17 @@
         </div>
       </div>
     </div>
+
+    <div class="wake-indicator">
+      <div id="wakeDot" class="wake-dot"></div>
+      <span id="wakeLabel">Say "okay truckguard"</span>
+    </div>
+
+    <div id="assistantOverlay" class="assistant-overlay">
+      <div class="assistant-ring">&#127897;</div>
+      <div class="assistant-label" id="assistantLabel">Listening...</div>
+      <div class="assistant-question" id="assistantQuestion"></div>
+    </div>
   </div>
 
   <script>
@@ -511,6 +605,59 @@
     const historyToggle = document.getElementById('historyToggle');
     const historyPanel = document.getElementById('historyPanel');
     const historyList = document.getElementById('historyList');
+    const assistantOverlay = document.getElementById('assistantOverlay');
+    const assistantLabel = document.getElementById('assistantLabel');
+    const assistantQuestion = document.getElementById('assistantQuestion');
+    const wakeDot = document.getElementById('wakeDot');
+    const wakeLabel = document.getElementById('wakeLabel');
+
+    let wakeRecognition = null;
+    let assistantActive = false;
+    let wakeWordEnabled = false;
+    let wakeWordSuspended = false;
+
+    const WAKE_PHRASES = [
+      'okay truckguard',
+      'ok truckguard',
+      'hey truckguard',
+      'truckguard',
+      'okay truck guard',
+      'ok truck guard',
+      'hey truck guard',
+      'truck guard',
+      'okay truck gard',
+      'ok truck gard',
+      'truck gard',
+      'truck gaurd',
+      'truck gurard',
+      'truck gaurd',
+      'truck gurd',
+      'truck gaurd',
+      'truck'
+    ];
+
+    function normalizeSpeechText(value) {
+      return String(value || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function isWakePhraseDetected(transcript) {
+      const normalized = normalizeSpeechText(transcript);
+      if (!normalized) return false;
+
+      if (WAKE_PHRASES.some((phrase) => normalized.includes(phrase))) {
+        return true;
+      }
+
+      const hasTruck = /\btruck\b|\btruckguard\b/.test(normalized);
+      const hasGuardLike = /\bguard\b|\bgaurd\b|\bgard\b|\bgurd\b|\bgurard\b/.test(normalized);
+      const hasTriggerWord = /\bok\b|\bokay\b|\bhey\b/.test(normalized);
+
+      return hasTruck && hasGuardLike && hasTriggerWord;
+    }
 
     function renderHistory() {
       if (!sessionState.recentScores.length) {
@@ -735,7 +882,10 @@
         };
 
         recognition.onend = () => {
-          settle({ transcript: '', latencyMs });
+          const elapsedMs = Date.now() - listenStartTime;
+          if (elapsedMs > 1500) {
+            settle({ transcript: '', latencyMs });
+          }
         };
 
         const timeoutId = setTimeout(() => {
@@ -753,6 +903,124 @@
       await speak('I did not catch that. Please repeat your response.');
       response = await listenForResponse();
       return response;
+    }
+
+    function startWakeWordListening() {
+      if (!wakeWordEnabled || wakeWordSuspended) return;
+
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) return;
+
+      wakeRecognition = new SR();
+      wakeRecognition.continuous = true;
+      wakeRecognition.interimResults = true;
+      wakeRecognition.lang = 'en-US';
+
+      wakeRecognition.onstart = () => {
+        wakeDot.classList.add('listening');
+        wakeLabel.textContent = 'Say "okay truckguard"';
+      };
+
+      wakeRecognition.onresult = (event) => {
+        if (assistantActive) return;
+
+        for (let i = event.resultIndex; i < event.results.length; i += 1) {
+          const transcript = event.results[i][0].transcript;
+          const detected = isWakePhraseDetected(transcript);
+
+          if (detected) {
+            wakeRecognition.stop();
+            triggerAssistant();
+            return;
+          }
+        }
+      };
+
+      wakeRecognition.onerror = () => {
+        setTimeout(() => {
+          if (wakeWordEnabled && !assistantActive && !wakeWordSuspended) startWakeWordListening();
+        }, 1000);
+      };
+
+      wakeRecognition.onend = () => {
+        setTimeout(() => {
+          if (wakeWordEnabled && !assistantActive && !wakeWordSuspended) startWakeWordListening();
+        }, 300);
+      };
+
+      try {
+        wakeRecognition.start();
+      } catch (_error) {
+        // no-op
+      }
+    }
+
+    function stopWakeWordListening(suspend = false) {
+      wakeWordSuspended = suspend;
+      if (wakeRecognition) {
+        try { wakeRecognition.stop(); } catch (_error) { /* no-op */ }
+        wakeRecognition = null;
+      }
+      wakeDot.classList.remove('listening');
+    }
+
+    function resumeWakeWordListening() {
+      wakeWordSuspended = false;
+      if (wakeWordEnabled && !assistantActive) {
+        startWakeWordListening();
+      }
+    }
+
+    async function triggerAssistant() {
+      stopWakeWordListening(true);
+      assistantActive = true;
+      assistantOverlay.classList.add('active');
+      assistantLabel.textContent = 'What do you need?';
+      assistantQuestion.textContent = '';
+
+      await speak('What do you need help with?');
+
+      assistantLabel.textContent = 'Listening...';
+      const { transcript } = await listenForResponse();
+
+      if (!transcript) {
+        assistantLabel.textContent = 'Did not catch that.';
+        await speak('Sorry, I did not catch that. Try again after saying okay truckguard.');
+        closeAssistant();
+        return;
+      }
+
+      assistantQuestion.textContent = `"${transcript}"`;
+      assistantLabel.textContent = 'Thinking...';
+
+      try {
+        const response = await fetch(`${SERVER}/api/assistant`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: transcript })
+        });
+
+        const data = await response.json();
+        const answer = data.answer || 'Sorry, I could not get an answer right now.';
+
+        assistantLabel.textContent = 'Answering...';
+        await speak(answer);
+      } catch (_error) {
+        await speak('Sorry, I could not connect to get an answer right now.');
+      }
+
+      closeAssistant();
+    }
+
+    function closeAssistant() {
+      assistantActive = false;
+      assistantOverlay.classList.remove('active');
+      assistantLabel.textContent = 'Listening...';
+      assistantQuestion.textContent = '';
+
+      if (wakeWordEnabled) {
+        setTimeout(() => resumeWakeWordListening(), 500);
+      }
     }
 
     function updateAlertLevel(level) {
@@ -819,6 +1087,9 @@
     async function runCheckIn() {
       if (!sessionState.sessionId) return;
 
+      // Stop wake word so it doesn't fight the mic
+      stopWakeWordListening(true);
+
       const question = 'Quick check - how are you holding up out there?';
 
       try {
@@ -855,6 +1126,11 @@
         await speakIntervention(normalizedLevel, llmAnalysis);
       } catch (_error) {
         await speak('Unable to complete check in right now. Please try again shortly.');
+      } finally {
+        // Always restart wake word when done, whether it succeeded or failed
+        if (wakeWordEnabled) {
+          setTimeout(() => resumeWakeWordListening(), 500);
+        }
       }
     }
 
@@ -947,6 +1223,10 @@
         await ensureMicrophoneAccess();
         await startShift(driverName, truckId);
         closeStartOverlay();
+        setTimeout(() => {
+          wakeWordEnabled = true;
+          resumeWakeWordListening();
+        }, 3000);
       } catch (_error) {
         await speak('Unable to start shift right now. Check server connection and try again.');
       } finally {

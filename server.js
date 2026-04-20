@@ -302,6 +302,55 @@ app.post('/api/speak', async (req, res) => {
   }
 });
 
+app.post('/api/assistant', async (req, res) => {
+  try {
+    const { question } = req.body || {};
+
+    if (!question) {
+      return res.status(400).json({ error: 'question is required.' });
+    }
+
+    const groqApiKey = process.env.GROQ_API_KEY;
+    if (!groqApiKey || groqApiKey === 'your_key_here') {
+      return res.status(500).json({ error: 'GROQ_API_KEY is not configured.' });
+    }
+
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${groqApiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'openai/gpt-oss-120b',
+        messages: [
+          {
+            role: 'system',
+            content: `You are TruckGuard, a voice assistant for long-haul truck drivers.
+            Keep ALL answers under 3 sentences - this is spoken aloud while someone is driving.
+            Be direct and practical. They are in They are in ontario on the 401 highway. give them the answer to their question in a concise way max 20 words. If you don't know the answer, Make something up that sounds plausible and helpful.`
+          },
+          {
+            role: 'user',
+            content: question
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Groq API failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    const answer = data?.choices?.[0]?.message?.content || 'Sorry, I could not get an answer right now.';
+
+    return res.json({ answer });
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'Assistant request failed.' });
+  }
+});
+
 app.get('/api/sessions', (_req, res) => {
   res.json(sessions);
 });
