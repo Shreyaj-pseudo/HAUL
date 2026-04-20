@@ -1,7 +1,12 @@
 require('dotenv').config();
-
+console.log('XI key loaded:', !!process.env.ELEVENLABS_API_KEY);
 const express = require('express');
 const cors = require('cors');
+const { ElevenLabsClient } = require('elevenlabs'); // ← after dotenv
+
+const elevenLabsClient = new ElevenLabsClient({
+  apiKey: process.env.ELEVENLABS_API_KEY,
+});
 
 const fetch = (...args) => import('node-fetch').then(({ default: fetchFn }) => fetchFn(...args));
 
@@ -147,7 +152,7 @@ async function analyzeWithGroq(transcript, latencyMs, hoursOnRoad) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'llama3-70b-8192',
+        model: 'openai/gpt-oss-120b',
         messages: [
           {
             role: 'system',
@@ -252,44 +257,48 @@ app.post('/api/speak', async (req, res) => {
       return res.status(400).json({ error: 'text and voiceId are required.' });
     }
 
-    const elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
-    if (!elevenLabsApiKey || elevenLabsApiKey === 'your_key_here') {
+    if (!process.env.ELEVENLABS_API_KEY || process.env.ELEVENLABS_API_KEY === 'your_key_here') {
       return res.status(500).json({ error: 'ELEVENLABS_API_KEY is not configured.' });
     }
 
-    const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`;
+    const resolvedVoiceId = process.env.ELEVENLABS_VOICE_ID || voiceId;
+    const modelId = process.env.ELEVENLABS_MODEL_ID || 'eleven_flash_v2_5';
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'xi-api-key': elevenLabsApiKey,
-        'Content-Type': 'application/json'
+    const audioStream = await elevenLabsClient.textToSpeech.convert(resolvedVoiceId, {
+      text,
+      model_id: modelId,
+      voice_settings: {
+        stability: 0.5,
+        similarity_boost: 0.75,
       },
-      body: JSON.stringify({
-        text,
-        model_id: 'eleven_monolingual_v1',
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75
-        }
-      })
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      return res.status(response.status).json({ error: errorText || 'Failed to generate speech.' });
+    res.setHeader('Content-Type', 'audio/mpeg');
+
+    // Handle both Web Streams and Node.js streams
+    if (typeof audioStream.pipe === 'function') {
+      audioStream.pipe(res);
+      audioStream.on('error', (err) => {
+        console.error('Stream error:', err.message);
+        if (!res.headersSent) res.status(500).json({ error: 'Stream failed.' });
+      });
+    } else {
+      // Web Stream — convert to buffer and send
+      const { Readable } = require('stream');
+      const nodeStream = Readable.fromWeb(audioStream);
+      nodeStream.pipe(res);
+      nodeStream.on('error', (err) => {
+        console.error('Stream error:', err.message);
+        if (!res.headersSent) res.status(500).json({ error: 'Stream failed.' });
+      });
     }
 
-    const contentType = response.headers.get('content-type') || 'audio/mpeg';
-    res.setHeader('Content-Type', contentType);
-
-    if (!response.body) {
-      return res.status(500).json({ error: 'No audio stream received from ElevenLabs.' });
-    }
-
-    response.body.pipe(res);
   } catch (error) {
-    return res.status(500).json({ error: error.message || 'Failed to call ElevenLabs API.' });
+    const status = error?.statusCode || 500;
+    const message = error?.body?.detail?.message || error?.message || 'Failed to generate speech.';
+    if (!res.headersSent) {
+      return res.status(status).json({ error: message });
+    }
   }
 });
 
@@ -381,6 +390,38 @@ app.post('/api/sessions/start', (req, res) => {
   };
 
   return res.json({ sessionId });
+});
+
+app.delete('/api/sessions/:sessionId', (req, res) => {
+  const { sessionId } = req.params;
+
+  if (!sessions[sessionId]) {
+    return res.status(404).json({ error: 'Session not found.' });
+  }
+
+  delete sessions[sessionId];
+  delete sessionMeta[sessionId];
+
+  return res.json({
+    deleted: true,
+    sessionId,
+    remainingSessions: Object.keys(sessions).length
+  });
+});
+
+app.delete('/api/sessions', (_req, res) => {
+  Object.keys(sessions).forEach((sessionId) => {
+    delete sessions[sessionId];
+  });
+
+  Object.keys(sessionMeta).forEach((sessionId) => {
+    delete sessionMeta[sessionId];
+  });
+
+  return res.json({
+    deletedAll: true,
+    remainingSessions: 0
+  });
 });
 
 const PORT = process.env.PORT || 3000;

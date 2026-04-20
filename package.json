@@ -1,7 +1,7 @@
 {
   "name": "haul",
   "version": "1.0.0",
-  "description": "",
+  "description": "TruckGuard is a voice-first monitoring system that checks truck driver alertness during a shift using fast check-ins. The phone interface captures spoken responses and latency, then the backend combines heuristic fatigue scoring with Groq LLM behavioral analysis. A desktop fleet dashboard visualizes live session risk, trends, and AI reasoning so operators can intervene early.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -14,7 +14,16 @@
   "dependencies": {
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
+    "elevenlabs": "^1.59.0",
     "express": "^5.2.1",
     "node-fetch": "^3.3.2"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Shreyaj-pseudo/HAUL.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Shreyaj-pseudo/HAUL/issues"
+  },
+  "homepage": "https://github.com/Shreyaj-pseudo/HAUL#readme"
 }

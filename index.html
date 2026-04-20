@@ -257,34 +257,39 @@
 
     .speaking-indicator {
       position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: 20px;
+      left: 12px;
+      right: 12px;
+      bottom: max(8px, env(safe-area-inset-bottom));
+      height: 34px;
+      border-radius: 10px;
       border-top: 1px solid #1f2937;
       background: linear-gradient(90deg, rgba(17, 24, 39, 0.5) 0%, rgba(17, 24, 39, 0.1) 100%);
       display: flex;
       align-items: flex-end;
       justify-content: center;
+      z-index: 8;
+      pointer-events: none;
     }
 
     .waveform {
-      height: 15px;
+      height: 26px;
       display: flex;
-      gap: 4px;
+      gap: 6px;
       align-items: flex-end;
-      opacity: 0.2;
+      opacity: 0.35;
       transition: all 0.6s ease;
+      margin-bottom: 3px;
     }
 
     .waveform-bar {
-      width: 4px;
-      height: 6px;
-      border-radius: 2px;
+      width: 6px;
+      height: 16px;
+      border-radius: 3px;
       background: #22c55e;
       transform-origin: bottom center;
-      animation: wave 1s ease-in-out infinite;
+      animation: wave 0.95s ease-in-out infinite;
       animation-play-state: paused;
+      box-shadow: 0 0 6px rgba(34, 197, 94, 0.55);
     }
 
     .waveform-bar:nth-child(2) {
@@ -388,8 +393,8 @@
 
     @keyframes wave {
       0%,
-      100% { transform: scaleY(0.35); }
-      50% { transform: scaleY(1); }
+      100% { transform: scaleY(0.45); }
+      50% { transform: scaleY(1.8); }
     }
 
     @media (max-width: 420px) {
@@ -478,7 +483,8 @@
       demoMode: false,
       demoScenarioIndex: 0,
       lastCheckInAt: null,
-      recentScores: []
+      recentScores: [],
+      micReady: false
     };
 
     const demoScenarios = [
@@ -551,6 +557,60 @@
       return 'NORMAL';
     }
 
+    async function ensureMicrophoneAccess() {
+      if (sessionState.micReady) return true;
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        return false;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((track) => track.stop());
+        sessionState.micReady = true;
+        return true;
+      } catch (_error) {
+        return false;
+      }
+    }
+
+    async function playAudioElement(audioBlob) {
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      audio.volume = 1;
+      audio.setAttribute('playsinline', 'true');
+
+      await new Promise((resolve) => {
+        const finish = () => {
+          URL.revokeObjectURL(audioUrl);
+          resolve();
+        };
+        audio.onended = finish;
+        audio.onerror = finish;
+        audio.play().catch(finish);
+      });
+    }
+
+    async function promptForFallbackResponse() {
+      const typed = window.prompt('Speech recognition was unavailable. Type your response:') || '';
+      return { transcript: typed.trim(), latencyMs: 2500 };
+    }
+
+    async function speakWithBrowserFallback(text) {
+      if (!('speechSynthesis' in window)) return;
+
+      await new Promise((resolve) => {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1;
+        utterance.pitch = 1;
+        utterance.volume = 1;
+        utterance.onend = resolve;
+        utterance.onerror = resolve;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance);
+      });
+    }
+
     async function speak(text) {
       if (!text) return;
 
@@ -564,24 +624,50 @@
         });
 
         if (!response.ok) {
-          throw new Error('Speak request failed');
+          let errorMessage = 'Speak request failed';
+          try {
+            const payload = await response.json();
+            errorMessage = payload?.error || errorMessage;
+          } catch (_parseError) {
+            // no-op
+          }
+          throw new Error(errorMessage);
         }
 
         const audioBlob = await response.blob();
-        const audioUrl = URL.createObjectURL(audioBlob);
-        const audio = new Audio(audioUrl);
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
 
-        await new Promise((resolve) => {
-          const finish = () => {
-            URL.revokeObjectURL(audioUrl);
-            resolve();
-          };
-          audio.onended = finish;
-          audio.onerror = finish;
-          audio.play().catch(finish);
-        });
+        if (AudioContextClass) {
+          const audioContext = new AudioContextClass();
+          try {
+            if (audioContext.state === 'suspended') {
+              await audioContext.resume();
+            }
+
+            const audioBuffer = await audioBlob.arrayBuffer();
+            const decoded = await audioContext.decodeAudioData(audioBuffer.slice(0));
+            const source = audioContext.createBufferSource();
+            const gainNode = audioContext.createGain();
+
+            gainNode.gain.value = 1.6;
+            source.buffer = decoded;
+            source.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            await new Promise((resolve) => {
+              source.onended = resolve;
+              source.start(0);
+            });
+          } catch (_error) {
+            await playAudioElement(audioBlob);
+          } finally {
+            await audioContext.close();
+          }
+        } else {
+          await playAudioElement(audioBlob);
+        }
       } catch (_error) {
-        await new Promise((resolve) => setTimeout(resolve, 300));
+        await speakWithBrowserFallback(text);
       } finally {
         document.body.classList.remove('speaking');
       }
@@ -597,7 +683,12 @@
 
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
-        return { transcript: '', latencyMs: 8000 };
+        return promptForFallbackResponse();
+      }
+
+      const hasMic = await ensureMicrophoneAccess();
+      if (!hasMic) {
+        return promptForFallbackResponse();
       }
 
       return new Promise((resolve) => {
@@ -643,12 +734,25 @@
           settle({ transcript: '', latencyMs });
         };
 
+        recognition.onend = () => {
+          settle({ transcript: '', latencyMs });
+        };
+
         const timeoutId = setTimeout(() => {
-          settle({ transcript: '', latencyMs: 8000 });
-        }, 8000);
+          settle({ transcript: '', latencyMs: 10000 });
+        }, 10000);
 
         recognition.start();
       });
+    }
+
+    async function captureDriverResponse() {
+      let response = await listenForResponse();
+      if (response.transcript) return response;
+
+      await speak('I did not catch that. Please repeat your response.');
+      response = await listenForResponse();
+      return response;
     }
 
     function updateAlertLevel(level) {
@@ -719,7 +823,7 @@
 
       try {
         await speak(question);
-        const { transcript, latencyMs } = await listenForResponse(question);
+        const { transcript, latencyMs } = await captureDriverResponse();
         const hoursOnRoad = (Date.now() - sessionState.startTime) / 3600000;
 
         const response = await fetch(`${SERVER}/api/checkin`, {
@@ -840,6 +944,7 @@
 
       confirmStartBtn.disabled = true;
       try {
+        await ensureMicrophoneAccess();
         await startShift(driverName, truckId);
         closeStartOverlay();
       } catch (_error) {
